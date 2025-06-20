@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.NonFinal;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -28,7 +29,7 @@ import java.util.Set;
 @Slf4j
 public class ApplicationInitConfig {
 
-    PasswordEncoder passwordEncoder;
+    ObjectProvider<PasswordEncoder> passwordEncoder;
 
     @NonFinal
     @Value("${admin.username}")
@@ -54,7 +55,7 @@ public class ApplicationInitConfig {
 
                         Account admin = Account.builder()
                                 .username(ADMIN_USER_NAME)
-                                .password(passwordEncoder.encode(ADMIN_PASSWORD))
+                                .password(passwordEncoder.getIfAvailable().encode(ADMIN_PASSWORD))
                                 .roles(Set.of(adminRole, userRole))
                                 .build();
 

@@ -1,10 +1,12 @@
 package com.dts.entry.identityservice.exception;
 
+import com.dts.entry.identityservice.consts.Error;
 import com.dts.entry.identityservice.viewmodel.error.ErrorVm;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.client.HttpClientErrorException;
@@ -27,7 +29,12 @@ public class GlobalExceptionHandler {
         this.environment = environment;
     }
 
-
+    @ExceptionHandler(value = Exception.class)
+    ResponseEntity<ErrorVm> handlingRuntimeException(RuntimeException exception, WebRequest request) {
+        log.error("Exception: ", exception);
+        return buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, Error.ErrorCodeMessage.UNCATEGORIZED_EXCEPTION,
+                Error.ErrorCode.UNCATEGORIZED_EXCEPTION, null, exception, request, 500);
+    }
     @ExceptionHandler({AppException.class})
     public ResponseEntity<ErrorVm> handleAppException(AppException ex, WebRequest request) {
         HttpStatus status = HttpStatus.valueOf(ex.getHttpStatusCode());
@@ -35,7 +42,12 @@ public class GlobalExceptionHandler {
         String errorCode = ex.getBusinessErrorCode();
         return buildErrorResponse(status, errorCode, message, null, ex, request, status.value());
     }
+    @ExceptionHandler(value = AccessDeniedException.class)
+    ResponseEntity<ErrorVm> handlingAccessDeniedException(AccessDeniedException exception, WebRequest request) {
+        return buildErrorResponse(HttpStatus.FORBIDDEN, Error.ErrorCodeMessage.FORBIDDEN, Error.ErrorCode.FORBIDDEN, null,
+                exception, request, HttpStatus.FORBIDDEN.value());
 
+    }
 
     private String getServletPath(WebRequest webRequest) {
         ServletWebRequest servletRequest = (ServletWebRequest) webRequest;

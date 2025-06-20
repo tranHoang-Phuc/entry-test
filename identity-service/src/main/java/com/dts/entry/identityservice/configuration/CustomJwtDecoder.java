@@ -4,6 +4,7 @@ import com.dts.entry.identityservice.consts.Error;
 import com.dts.entry.identityservice.exception.AppException;
 import com.dts.entry.identityservice.service.AuthService;
 import com.dts.entry.identityservice.viewmodel.IntrospectRequest;
+import com.dts.entry.identityservice.viewmodel.response.IntrospectResponse;
 import com.nimbusds.jose.JOSEException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -31,24 +32,27 @@ public class CustomJwtDecoder implements JwtDecoder {
 
     @Override
     public Jwt decode(String token) throws JwtException {
-
-
-            var response = authService.introspect(
+        IntrospectResponse response = null;
+        try {
+            response = authService.introspect(
                     IntrospectRequest.builder().accessToken(token).build());
+        } catch (ParseException | JOSEException e) {
+            throw new AppException(Error.ErrorCode.UNAUTHORIZED,
+                    Error.ErrorCodeMessage.UNAUTHORIZED,
+                    HttpStatus.UNAUTHORIZED.value());
+        }
 
-            if (!response.isValid()) throw new AppException(Error.ErrorCode.UNAUTHORIZED,
+        if (!response.isValid()) throw new AppException(Error.ErrorCode.UNAUTHORIZED,
                     Error.ErrorCodeMessage.UNAUTHORIZED,
                     HttpStatus.UNAUTHORIZED.value());
 
 
-            if (Objects.isNull(nimbusJwtDecoder)) {
-                SecretKeySpec secretKeySpec = new SecretKeySpec(signerKey.getBytes(), "HS512");
-                nimbusJwtDecoder = NimbusJwtDecoder.withSecretKey(secretKeySpec)
-                        .macAlgorithm(MacAlgorithm.HS512)
-                        .build();
-            }
-
-            return nimbusJwtDecoder.decode(token);
-
+        if (Objects.isNull(nimbusJwtDecoder)) {
+            SecretKeySpec secretKeySpec = new SecretKeySpec(signerKey.getBytes(), "HS512");
+            nimbusJwtDecoder = NimbusJwtDecoder.withSecretKey(secretKeySpec)
+                    .macAlgorithm(MacAlgorithm.HS512)
+                    .build();
+        }
+        return nimbusJwtDecoder.decode(token);
     }
 }

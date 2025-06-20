@@ -1,5 +1,6 @@
 package com.dts.entry.identityservice.model;
 
+import com.dts.entry.identityservice.model.enumerable.Status;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -26,6 +27,9 @@ public class Account {
     String username;
     @Column(name = "email", nullable = false, unique = true, length = 255)
     String password;
+    @Column(name = "status")
+    @Enumerated(EnumType.ORDINAL)
+    Status status;
     @ManyToMany
     Set<Role> roles;
 }
