@@ -5,6 +5,7 @@ import com.dts.entry.identityservice.viewmodel.request.SignUpRequest;
 import com.dts.entry.identityservice.viewmodel.response.IntrospectResponse;
 import com.dts.entry.identityservice.viewmodel.response.SignInResponse;
 import com.nimbusds.jose.JOSEException;
+import jakarta.validation.constraints.Email;
 
 import java.text.ParseException;
 
@@ -13,4 +14,6 @@ public interface AuthService {
     IntrospectResponse introspect(IntrospectRequest request) throws ParseException, JOSEException;
 
     void signUp(SignUpRequest request);
+
+    void sendOtp(@Email String email);
 }

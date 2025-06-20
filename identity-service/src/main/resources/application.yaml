@@ -7,6 +7,10 @@ spring:
     username: ${POSTGRES_USER}
     password: ${POSTGRES_PASSWORD}
 
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST}
+      port: ${SPRING_DATA_REDIS_PORT}
 
   jpa:
     properties:
@@ -35,7 +39,12 @@ jwt:
   signerKey: ${JWT_SECRET}
   valid-duration: 3600
   refreshable-duration: 36000
+  issuer: ${JWT_ISSUER}
 
 admin:
   username: ${ADMIN_USERNAME}
   password: ${ADMIN_PASSWORD}
+
+rate-limiter:
+  max-attempts: 5
+  block-duration: 3600
