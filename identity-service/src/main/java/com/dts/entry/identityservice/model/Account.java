@@ -26,7 +26,6 @@ public class Account {
     String username;
     @Column(name = "email", nullable = false, unique = true, length = 255)
     String password;
-
     @ManyToMany
     Set<Role> roles;
 }
