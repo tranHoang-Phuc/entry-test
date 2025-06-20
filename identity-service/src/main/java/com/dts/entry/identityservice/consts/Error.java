@@ -10,6 +10,8 @@ public class Error {
         public static final String USER_NOT_FOUND = "USER_NOT_FOUND";
         public static final String USER_UNVERIFIED = "USER_UNVERIFIED";
         public static final String USER_BLOCKED = "USER_BLOCKED";
+        public static final String VERIFY_EMAIL_RATE_LIMIT = "VERIFY_EMAIL_RATE_LIMIT";
+        public static final String INVALID_VERIFIED_TOKEN = "INVALID_VERIFIED_TOKEN";
     }
 
     public final class ErrorCodeMessage{
@@ -21,6 +23,8 @@ public class Error {
         public static final String USER_NOT_FOUND = "000014";
         public static final String USER_UNVERIFIED = "000015";
         public static final String USER_BLOCKED = "000016";
+        public static final String VERIFY_EMAIL_RATE_LIMIT = "000017";
+        public static final String INVALID_VERIFIED_TOKEN = "000018";
 
     }
 }

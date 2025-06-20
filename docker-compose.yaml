@@ -19,8 +19,24 @@ services:
     networks:
       - entry-network
 
+  redis:
+    container_name: redis-entry
+    image: redis:7.4.1-alpine
+    restart: always
+    ports:
+      - '6379:6379'
+    environment:
+      - SPRING_DATA_REDIS_HOST=${SPRING_DATA_REDIS_HOST}
+      - SPRING_DATA_REDIS_PORT=${SPRING_DATA_REDIS_PORT}
+    volumes:
+      - redis:/var/lib/redis/data
+    networks:
+      - entry-network
+
 volumes:
   postgres:
+    driver: local
+  redis:
     driver: local
 
 networks:

@@ -4,8 +4,10 @@ import com.dts.entry.identityservice.service.AuthService;
 import com.dts.entry.identityservice.viewmodel.request.SendOtpRequest;
 import com.dts.entry.identityservice.viewmodel.request.SignInRequest;
 import com.dts.entry.identityservice.viewmodel.request.SignUpRequest;
+import com.dts.entry.identityservice.viewmodel.request.VerifyOtpRequest;
 import com.dts.entry.identityservice.viewmodel.response.BaseResponse;
 import com.dts.entry.identityservice.viewmodel.response.SignInResponse;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import jakarta.annotation.security.PermitAll;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -45,8 +47,21 @@ public class AuthController {
 
     @PostMapping("/send-otp")
     @PermitAll
-    public ResponseEntity<?> sendOtp(@RequestBody SendOtpRequest request) {
+    public ResponseEntity<?> sendOtp(@RequestBody SendOtpRequest request) throws JsonProcessingException {
         authService.sendOtp(request.email());
         return ResponseEntity.noContent().build();
     }
+
+    @PostMapping("/verify-otp")
+    @PermitAll
+    public ResponseEntity<BaseResponse<SignInResponse>> verifyOtp(@RequestBody VerifyOtpRequest request) throws JsonProcessingException {
+        SignInResponse data = authService.verifyOtp(request.email(), request.otp());
+        BaseResponse<SignInResponse> body = BaseResponse.<SignInResponse>builder()
+                .message("Verify OTP successfully")
+                .data(data)
+                .build();
+        return ResponseEntity.ok(body);
+    }
+
+
 }
