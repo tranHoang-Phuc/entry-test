@@ -4,6 +4,7 @@ import com.dts.entry.identityservice.viewmodel.IntrospectRequest;
 import com.dts.entry.identityservice.viewmodel.request.SignUpRequest;
 import com.dts.entry.identityservice.viewmodel.response.IntrospectResponse;
 import com.dts.entry.identityservice.viewmodel.response.SignInResponse;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.nimbusds.jose.JOSEException;
 import jakarta.validation.constraints.Email;
 
@@ -15,5 +16,7 @@ public interface AuthService {
 
     void signUp(SignUpRequest request);
 
-    void sendOtp(@Email String email);
+    void sendOtp(@Email String email) throws JsonProcessingException;
+
+    SignInResponse verifyOtp(String email, String otp) throws JsonProcessingException;
 }

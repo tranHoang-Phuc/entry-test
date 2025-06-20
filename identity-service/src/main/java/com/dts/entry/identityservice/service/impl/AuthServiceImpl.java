@@ -8,10 +8,13 @@ import com.dts.entry.identityservice.model.enumerable.Status;
 import com.dts.entry.identityservice.repository.AccountRepository;
 import com.dts.entry.identityservice.repository.RoleRepository;
 import com.dts.entry.identityservice.service.AuthService;
+import com.dts.entry.identityservice.service.RedisService;
+import com.dts.entry.identityservice.service.VerifyEmailRateLimiter;
 import com.dts.entry.identityservice.viewmodel.IntrospectRequest;
 import com.dts.entry.identityservice.viewmodel.request.SignUpRequest;
 import com.dts.entry.identityservice.viewmodel.response.IntrospectResponse;
 import com.dts.entry.identityservice.viewmodel.response.SignInResponse;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.nimbusds.jose.*;
 import com.nimbusds.jose.crypto.MACSigner;
 import com.nimbusds.jose.crypto.MACVerifier;
@@ -30,6 +33,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
 import java.text.ParseException;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
@@ -62,7 +66,8 @@ public class AuthServiceImpl implements AuthService {
     AccountRepository accountRepository;
     RoleRepository roleRepository;
     ObjectProvider<PasswordEncoder> passwordEncoder;
-
+    VerifyEmailRateLimiter verifyEmailRateLimiter;
+    RedisService redisService;
     @Override
     public SignInResponse signIn(String username, String password) {
         Account account = accountRepository.findByUsername(username)
@@ -134,8 +139,65 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public void sendOtp(String email) {
-        
+    public void sendOtp(String email) throws JsonProcessingException {
+        if (verifyEmailRateLimiter.isBlocked(email)) {
+            throw new AppException(Error.ErrorCodeMessage.VERIFY_EMAIL_RATE_LIMIT,
+                    Error.ErrorCode.VERIFY_EMAIL_RATE_LIMIT, HttpStatus.TOO_MANY_REQUESTS.value());
+        }
+
+        var account = accountRepository.findByUsername(email)
+                .orElseThrow(() -> new AppException(Error.ErrorCode.USER_NOT_FOUND,
+                        Error.ErrorCodeMessage.USER_NOT_FOUND, HttpStatus.NOT_FOUND.value()));
+
+        if(account.getStatus() == Status.BLOCKED || account.getStatus() == Status.DELETED) {
+            throw new AppException(Error.ErrorCode.USER_BLOCKED,
+                    Error.ErrorCodeMessage.USER_BLOCKED, HttpStatus.FORBIDDEN.value());
+        }
+
+        if (account.getStatus() == Status.VERIFIED) {
+            // Set cookie
+            return;
+        }
+
+        String otp = generateAndStoreOtp(email);
+        verifyEmailRateLimiter.recordAttempt(email);
+
+        // gui vao kafka de consume
+
+    }
+
+    @Override
+    public SignInResponse verifyOtp(String email, String otp) throws JsonProcessingException {
+        String otpInCache = redisService.getValue("otp:" + email, String.class);
+        if (otpInCache == null) {
+            throw new AppException(Error.ErrorCodeMessage.INVALID_VERIFIED_TOKEN,
+                    Error.ErrorCode.INVALID_VERIFIED_TOKEN, HttpStatus.CONFLICT.value());
+        }
+        if (!otpInCache.equals(otp)) {
+            throw new AppException(Error.ErrorCodeMessage.INVALID_VERIFIED_TOKEN,
+                    Error.ErrorCode.INVALID_VERIFIED_TOKEN,  HttpStatus.CONFLICT.value());
+        }
+
+        Account account = accountRepository.findByUsername(email)
+                .orElseThrow(() -> new AppException(Error.ErrorCode.USER_NOT_FOUND,
+                        Error.ErrorCodeMessage.USER_NOT_FOUND, HttpStatus.NOT_FOUND.value()));
+        if(account.getStatus() == Status.UNVERIFIED) {
+            account.setStatus(Status.VERIFIED);
+            accountRepository.save(account);
+            log.info("Account {} verified successfully", account.getUsername());
+
+            String accessToken = generateAccessToken(account);
+            String refreshToken = generateRefeshToken(account);
+
+            return SignInResponse.builder()
+                    .accessToken(accessToken)
+                    .refreshToken(refreshToken)
+                    .tokenType("Bearer")
+                    .expiresIn(VALID_DURATION)
+                    .build();
+        }
+        throw new AppException(Error.ErrorCodeMessage.USER_BLOCKED,
+                Error.ErrorCode.USER_BLOCKED, HttpStatus.CONFLICT.value());
     }
 
     private SignedJWT verifyToken(String token, boolean isRefresh) throws JOSEException, ParseException {
@@ -222,5 +284,27 @@ public class AuthServiceImpl implements AuthService {
             throw new AppException(Error.ErrorCode.UNAUTHORIZED,
                     Error.ErrorCodeMessage.UNAUTHORIZED, HttpStatus.UNAUTHORIZED.value());
         }
+    }
+
+    private String generateAndStoreOtp(String email) {
+        String otp = generateOTP();
+
+        String redisKey = "otp:" + email;
+        try {
+            redisService.saveValue(redisKey, otp, Duration.ofMinutes(10));
+        } catch (JsonProcessingException e) {
+            throw new AppException(
+                    Error.ErrorCodeMessage.UNCATEGORIZED_EXCEPTION,
+                    Error.ErrorCodeMessage.UNCATEGORIZED_EXCEPTION, HttpStatus.INTERNAL_SERVER_ERROR.value()
+            );
+        }
+        return otp;
+    }
+    private String generateOTP() {
+        StringBuilder otp = new StringBuilder();
+        for (int i = 0; i < 6; i++) {
+            otp.append((int) (Math.random() * 10));
+        }
+        return otp.toString();
     }
 }
