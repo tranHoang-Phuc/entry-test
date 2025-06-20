@@ -7,6 +7,9 @@ public class Error {
         public static final String USERNAME_ALREADY_EXISTS = "USERNAME_ALREADY_EXISTS";
         public static final String UNCATEGORIZED_EXCEPTION = "UNCATEGORIZED_EXCEPTION";
         public static final String FORBIDDEN = "FORBIDDEN";
+        public static final String USER_NOT_FOUND = "USER_NOT_FOUND";
+        public static final String USER_UNVERIFIED = "USER_UNVERIFIED";
+        public static final String USER_BLOCKED = "USER_BLOCKED";
     }
 
     public final class ErrorCodeMessage{
@@ -15,5 +18,9 @@ public class Error {
         public static final String USERNAME_ALREADY_EXISTS = "000012";
         public static final String UNCATEGORIZED_EXCEPTION = "999999";
         public static final String FORBIDDEN = "000013";
+        public static final String USER_NOT_FOUND = "000014";
+        public static final String USER_UNVERIFIED = "000015";
+        public static final String USER_BLOCKED = "000016";
+
     }
 }

@@ -1,7 +1,11 @@
 package com.dts.entry.identityservice.controller;
 
 import com.dts.entry.identityservice.service.AuthService;
+import com.dts.entry.identityservice.viewmodel.request.SendOtpRequest;
+import com.dts.entry.identityservice.viewmodel.request.SignInRequest;
 import com.dts.entry.identityservice.viewmodel.request.SignUpRequest;
+import com.dts.entry.identityservice.viewmodel.response.BaseResponse;
+import com.dts.entry.identityservice.viewmodel.response.SignInResponse;
 import jakarta.annotation.security.PermitAll;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -24,8 +28,25 @@ public class AuthController {
     @PostMapping("/sign-up")
     @PermitAll
     public ResponseEntity<?> signUp(@RequestBody SignUpRequest request) {
-
         authService.signUp(request);
         return new ResponseEntity<>(HttpStatus.CREATED);
+    }
+
+    @PostMapping("/sign-in")
+    @PermitAll
+    public ResponseEntity<BaseResponse<SignInResponse>> signIn(@RequestBody SignInRequest request) {
+        SignInResponse response = authService.signIn(request.email(), request.passsword());
+        BaseResponse<SignInResponse> body = BaseResponse.<SignInResponse>builder()
+                .message("Sign in successfully")
+                .data(response)
+                .build();
+        return ResponseEntity.ok(body);
+    }
+
+    @PostMapping("/send-otp")
+    @PermitAll
+    public ResponseEntity<?> sendOtp(@RequestBody SendOtpRequest request) {
+        authService.sendOtp(request.email());
+        return ResponseEntity.noContent().build();
     }
 }
