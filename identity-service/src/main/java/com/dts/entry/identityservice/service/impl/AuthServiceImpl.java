@@ -16,6 +16,7 @@ import com.dts.entry.identityservice.service.RedisService;
 import com.dts.entry.identityservice.service.VerifyEmailRateLimiter;
 import com.dts.entry.identityservice.viewmodel.IntrospectRequest;
 import com.dts.entry.identityservice.viewmodel.request.SignUpRequest;
+import com.dts.entry.identityservice.viewmodel.request.VerifiedStatus;
 import com.dts.entry.identityservice.viewmodel.response.IntrospectResponse;
 import com.dts.entry.identityservice.viewmodel.response.SignInResponse;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -228,6 +229,17 @@ public class AuthServiceImpl implements AuthService {
         }
         throw new AppException(Error.ErrorCodeMessage.USER_BLOCKED,
                 Error.ErrorCode.USER_BLOCKED, HttpStatus.CONFLICT.value());
+    }
+
+    @Override
+    public VerifiedStatus isEmailVerified(String email) {
+        Account account = accountRepository.findByUsername(email)
+                .orElseThrow(() -> new AppException(Error.ErrorCode.USER_NOT_FOUND,
+                        Error.ErrorCodeMessage.USER_NOT_FOUND, HttpStatus.NOT_FOUND.value()));
+        return VerifiedStatus.builder()
+                .email(email)
+                .verified(account.getStatus() == Status.VERIFIED)
+                .build();
     }
 
     private SignedJWT verifyToken(String token, boolean isRefresh) throws JOSEException, ParseException {

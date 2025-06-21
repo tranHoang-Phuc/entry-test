@@ -2,6 +2,7 @@ package com.dts.entry.identityservice.service;
 
 import com.dts.entry.identityservice.viewmodel.IntrospectRequest;
 import com.dts.entry.identityservice.viewmodel.request.SignUpRequest;
+import com.dts.entry.identityservice.viewmodel.request.VerifiedStatus;
 import com.dts.entry.identityservice.viewmodel.response.IntrospectResponse;
 import com.dts.entry.identityservice.viewmodel.response.SignInResponse;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -19,4 +20,6 @@ public interface AuthService {
     void sendOtp(@Email String email) throws JsonProcessingException;
 
     SignInResponse verifyOtp(String email, String otp) throws JsonProcessingException;
+
+    VerifiedStatus isEmailVerified(String email);
 }
