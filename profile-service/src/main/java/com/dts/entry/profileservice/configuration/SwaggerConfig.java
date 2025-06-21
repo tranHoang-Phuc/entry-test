@@ -7,7 +7,7 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 @OpenAPIDefinition(
-        info = @Info(title = "Identity Service API", version = "v1"),
+        info = @Info(title = "Profile Service API", version = "v1"),
         servers = {
                 @Server(url = "/api/v1/user", description = "Profile Service")
         }

@@ -1,10 +1,10 @@
-package com.dts.entry.identityservice.configuration;
+package com.dts.entry.profileservice.configuration;
 
-import com.dts.entry.identityservice.consts.Error;
-import com.dts.entry.identityservice.exception.AppException;
-import com.dts.entry.identityservice.service.AuthService;
-import com.dts.entry.identityservice.viewmodel.request.IntrospectRequest;
-import com.dts.entry.identityservice.viewmodel.response.IntrospectResponse;
+
+import com.dts.entry.profileservice.exception.AppException;
+import com.dts.entry.profileservice.repository.client.IntrospectClient;
+import com.dts.entry.profileservice.viewmodel.request.IntrospectRequest;
+import com.dts.entry.profileservice.viewmodel.response.IntrospectResponse;
 import com.nimbusds.jose.JOSEException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -26,24 +26,20 @@ public class CustomJwtDecoder implements JwtDecoder {
     private String signerKey;
 
     @Autowired
-    private AuthService authService;
+    private IntrospectClient introspectClient   ;
 
     private NimbusJwtDecoder nimbusJwtDecoder = null;
 
     @Override
     public Jwt decode(String token) throws JwtException {
         IntrospectResponse response = null;
-        try {
-            response = authService.introspect(
-                    IntrospectRequest.builder().accessToken(token).build());
-        } catch (ParseException | JOSEException e) {
-            throw new AppException(Error.ErrorCode.UNAUTHORIZED,
-                    Error.ErrorCodeMessage.UNAUTHORIZED,
-                    HttpStatus.UNAUTHORIZED.value());
-        }
 
-        if (!response.isValid()) throw new AppException(Error.ErrorCode.UNAUTHORIZED,
-                    Error.ErrorCodeMessage.UNAUTHORIZED,
+        response = introspectClient.introspect(IntrospectRequest.builder()
+                        .accessToken(token)
+                .build()).data();
+
+        if (!response.isValid()) throw new AppException(com.dts.entry.profileservice.consts.Error.ErrorCode.UNAUTHORIZED,
+                com.dts.entry.profileservice.consts.Error.ErrorCode.UNAUTHORIZED,
                     HttpStatus.UNAUTHORIZED.value());
 
 

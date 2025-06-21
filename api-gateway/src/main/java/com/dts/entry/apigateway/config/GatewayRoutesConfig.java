@@ -16,9 +16,9 @@ public class GatewayRoutesConfig {
                         .filters(f -> f.stripPrefix(2))
                         .uri("http://localhost:8090"))
                 .route("reading-service", r -> r
-                        .path("/api/v1/profile/**")
+                        .path("/api/v1/user/**")
                         .filters(f -> f.stripPrefix(2))
-                        .uri("http://localhost:8091"))
+                        .uri("http://localhost:8081"))
                 .build();
     }
 }

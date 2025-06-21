@@ -1,6 +1,6 @@
 package com.dts.entry.identityservice.service;
 
-import com.dts.entry.identityservice.viewmodel.IntrospectRequest;
+import com.dts.entry.identityservice.viewmodel.request.IntrospectRequest;
 import com.dts.entry.identityservice.viewmodel.request.SignUpRequest;
 import com.dts.entry.identityservice.viewmodel.request.VerifiedStatus;
 import com.dts.entry.identityservice.viewmodel.response.IntrospectResponse;
