@@ -2,6 +2,7 @@ package com.dts.entry.identityservice.service.impl;
 
 import com.dts.entry.event.EmailSendingRequest;
 import com.dts.entry.event.RecipientUser;
+import com.dts.entry.event.UserCreation;
 import com.dts.entry.event.VerificationRequest;
 import com.dts.entry.identityservice.consts.CookieConstants;
 import com.dts.entry.identityservice.consts.Error;
@@ -77,7 +78,9 @@ public  class AuthServiceImpl implements AuthService {
     @Value("${kafka.topic.user-verification}")
     @NonFinal
     String userVerificationTopic;
-
+    @Value("${kafka.topic.user-creation}")
+    @NonFinal
+    String userCreationTopic;
     @Value("${client.domain}")
     @NonFinal
     String clientDomain;
@@ -155,11 +158,19 @@ public  class AuthServiceImpl implements AuthService {
                 .username(request.username())
                 .password(passwordEncoder.getIfAvailable().encode(request.password()))
                 .roles(Set.of(userRole))
+                .firstName(request.firstName())
+                .lastName(request.lastName())
                 .status(Status.UNVERIFIED)
                 .build();
 
-        accountRepository.save(account);
+        account = accountRepository.save(account);
+        UserCreation userCreation = UserCreation.builder()
+                .accountId(account.getAccountId())
+                .firstName(request.firstName())
+                .lastName(request.lastName())
+                .build();
 
+        kafkaTemplate.send(userCreationTopic, userCreation);
         log.info("Account {} created successfully", account.getUsername());
     }
 

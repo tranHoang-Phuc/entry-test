@@ -29,6 +29,7 @@ spring:
 kafka:
   topic:
     user-verification: user-verification-topic
+    user-creation: user-creation-topic
 
 server:
   port: 8090

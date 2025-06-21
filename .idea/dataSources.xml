@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="DataSourceManagerImpl" format="xml" multifile-model="true">
-    <data-source source="LOCAL" name="identity-service@localhost" uuid="7e547920-931a-4ddb-900b-a3e0ab19e33a">
+    <data-source source="LOCAL" name="identity-service@localhost [2]" uuid="3c450db3-58ee-4d2b-9673-cabe291e0244">
       <driver-ref>postgresql</driver-ref>
       <synchronize>true</synchronize>
       <jdbc-driver>org.postgresql.Driver</jdbc-driver>
@@ -13,11 +13,11 @@
       </jdbc-additional-properties>
       <working-dir>$ProjectFileDir$</working-dir>
     </data-source>
-    <data-source source="LOCAL" name="identity-service@localhost [2]" uuid="3c450db3-58ee-4d2b-9673-cabe291e0244">
+    <data-source source="LOCAL" name="profile-service@localhost" uuid="033a6f13-8da5-4082-bbb8-fa0c946dbb9a">
       <driver-ref>postgresql</driver-ref>
       <synchronize>true</synchronize>
       <jdbc-driver>org.postgresql.Driver</jdbc-driver>
-      <jdbc-url>jdbc:postgresql://localhost:5432/identity-service</jdbc-url>
+      <jdbc-url>jdbc:postgresql://localhost:5432/profile-service</jdbc-url>
       <jdbc-additional-properties>
         <property name="com.intellij.clouds.kubernetes.db.host.port" />
         <property name="com.intellij.clouds.kubernetes.db.enabled" value="false" />
