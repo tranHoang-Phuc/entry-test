@@ -1,6 +1,5 @@
 package com.dts.entry.identityservice.service.impl;
 
-import com.dts.entry.identityservice.service.RedisService;
 import com.dts.entry.identityservice.service.VerifyEmailRateLimiter;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import lombok.AccessLevel;

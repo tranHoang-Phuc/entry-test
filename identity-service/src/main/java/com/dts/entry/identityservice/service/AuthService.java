@@ -22,4 +22,6 @@ public interface AuthService {
     SignInResponse verifyOtp(String email, String otp) throws JsonProcessingException;
 
     VerifiedStatus isEmailVerified(String email);
+
+    void forgotPassword(String email) throws JsonProcessingException;
 }

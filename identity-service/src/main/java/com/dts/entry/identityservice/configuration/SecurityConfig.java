@@ -30,6 +30,7 @@ public class SecurityConfig {
             "/auth/send-otp",
             "/auth/verify-otp",
             "/auth/verify-email/status",
+            "/auth/forgot-password",
     };
     @Autowired
     private CustomJwtDecoder customJwtDecoder;

@@ -58,3 +58,6 @@ rate-limiter:
   max-attempts: 5
   block-duration: 3600
 
+client:
+  domain: ${CLIENT_DOMAIN}
+
