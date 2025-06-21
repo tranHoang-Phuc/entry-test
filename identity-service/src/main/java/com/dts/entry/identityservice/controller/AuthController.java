@@ -82,4 +82,11 @@ public class AuthController {
         authService.forgotPassword(request.email());
         return ResponseEntity.noContent().build();
     }
+
+    @PostMapping("/reset-password")
+    @PermitAll
+    public ResponseEntity<?> resetPassword(@RequestBody ResetPasswordRequest request) throws JsonProcessingException {
+        authService.resetPassword(request.email(), request.token(), request.newPassword());
+        return ResponseEntity.noContent().build();
+    }
 }

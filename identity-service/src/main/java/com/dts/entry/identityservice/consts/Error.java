@@ -13,6 +13,8 @@ public class Error {
         public static final String VERIFY_EMAIL_RATE_LIMIT = "VERIFY_EMAIL_RATE_LIMIT";
         public static final String INVALID_VERIFIED_TOKEN = "INVALID_VERIFIED_TOKEN";
         public static final String FORGOT_PASSWORD_RATE_LIMIT = "FORGOT_PASSWORD_RATE_LIMIT";
+        public static final String INVALID_TOKEN = "INVALID_TOKEN";
+
     }
 
     public final class ErrorCodeMessage{
@@ -27,6 +29,7 @@ public class Error {
         public static final String VERIFY_EMAIL_RATE_LIMIT = "000017";
         public static final String INVALID_VERIFIED_TOKEN = "000018";
 
-        public static final String FORGOT_PASSWORD_RATE_LIMIT = "FORGOT_PASSWORD_RATE_LIMIT";
+        public static final String FORGOT_PASSWORD_RATE_LIMIT = "000019";
+        public static final String INVALID_TOKEN = "000020";
     }
 }
