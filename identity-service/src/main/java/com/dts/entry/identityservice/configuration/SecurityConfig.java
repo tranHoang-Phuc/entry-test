@@ -22,7 +22,9 @@ public class SecurityConfig {
 
     private static final String[] AUTH_WHITELIST = {
             "/auth/sign-in",
-            "/auth/sign-up"
+            "/auth/sign-up",
+            "/auth/send-otp",
+            "/auth/verify-otp",
     };
     @Autowired
     private CustomJwtDecoder customJwtDecoder;
