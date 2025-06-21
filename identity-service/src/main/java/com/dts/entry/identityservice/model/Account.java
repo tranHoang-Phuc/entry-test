@@ -30,6 +30,10 @@ public class Account {
     @Column(name = "status")
     @Enumerated(EnumType.ORDINAL)
     Status status;
+    @Column(name = "first_name")
+    String firstName;
+    @Column(name = "last_name")
+    String lastName;
     @ManyToMany
     Set<Role> roles;
 }

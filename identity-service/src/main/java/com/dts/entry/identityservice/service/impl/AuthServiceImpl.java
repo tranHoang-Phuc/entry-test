@@ -1,5 +1,8 @@
 package com.dts.entry.identityservice.service.impl;
 
+import com.dts.entry.event.EmailSendingRequest;
+import com.dts.entry.event.RecipientUser;
+import com.dts.entry.event.VerificationRequest;
 import com.dts.entry.identityservice.consts.Error;
 import com.dts.entry.identityservice.exception.AppException;
 import com.dts.entry.identityservice.model.Account;
@@ -8,6 +11,7 @@ import com.dts.entry.identityservice.model.enumerable.Status;
 import com.dts.entry.identityservice.repository.AccountRepository;
 import com.dts.entry.identityservice.repository.RoleRepository;
 import com.dts.entry.identityservice.service.AuthService;
+import com.dts.entry.identityservice.service.EmailTemplateService;
 import com.dts.entry.identityservice.service.RedisService;
 import com.dts.entry.identityservice.service.VerifyEmailRateLimiter;
 import com.dts.entry.identityservice.viewmodel.IntrospectRequest;
@@ -28,6 +32,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
@@ -63,11 +68,19 @@ public class AuthServiceImpl implements AuthService {
     @Value("${jwt.valid-duration}")
     long VALID_DURATION;
 
+    @Value("${kafka.topic.user-verification}")
+    @NonFinal
+    String userVerificationTopic;
+
     AccountRepository accountRepository;
     RoleRepository roleRepository;
     ObjectProvider<PasswordEncoder> passwordEncoder;
     VerifyEmailRateLimiter verifyEmailRateLimiter;
     RedisService redisService;
+    EmailTemplateService emailTemplateService;
+    KafkaTemplate<String, Object> kafkaTemplate;
+
+
     @Override
     public SignInResponse signIn(String username, String password) {
         Account account = accountRepository.findByUsername(username)
@@ -163,7 +176,24 @@ public class AuthServiceImpl implements AuthService {
         verifyEmailRateLimiter.recordAttempt(email);
 
         // gui vao kafka de consume
+        VerificationRequest verificationRequest = VerificationRequest.builder()
+                .token(otp)
+                .build();
+        String htmlContent = emailTemplateService.buildVerificationEmail(otp);
 
+        RecipientUser recipientUser = RecipientUser.builder()
+                .email(email)
+                .firstName(account.getFirstName())
+                .lastName(account.getLastName())
+                .userId(account.getAccountId())
+                .build();
+        EmailSendingRequest<VerificationRequest> emailSendingRequest = EmailSendingRequest.<VerificationRequest>builder()
+                .recipientUser(recipientUser)
+                .htmlContent(htmlContent).subject("Verify email")
+                .data(verificationRequest)
+                .build();
+        log.info("Sending email verification request {}", email);
+        kafkaTemplate.send(userVerificationTopic, emailSendingRequest);
     }
 
     @Override
@@ -246,8 +276,10 @@ public class AuthServiceImpl implements AuthService {
             jwsObject.sign(new MACSigner(SIGNER_KEY.getBytes()));
             return jwsObject.serialize();
         } catch (JOSEException e) {
-            log.error("Cannot create token", e);
-            throw new RuntimeException(e);
+            throw new AppException(
+                    Error.ErrorCode.UNAUTHORIZED,
+                    Error.ErrorCodeMessage.UNAUTHORIZED, HttpStatus.UNAUTHORIZED.value()
+            );
         }
     }
 
