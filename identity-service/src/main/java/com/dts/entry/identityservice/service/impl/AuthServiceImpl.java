@@ -3,17 +3,22 @@ package com.dts.entry.identityservice.service.impl;
 import com.dts.entry.event.EmailSendingRequest;
 import com.dts.entry.event.RecipientUser;
 import com.dts.entry.event.VerificationRequest;
+import com.dts.entry.identityservice.consts.CookieConstant;
 import com.dts.entry.identityservice.consts.Error;
 import com.dts.entry.identityservice.exception.AppException;
 import com.dts.entry.identityservice.model.Account;
+import com.dts.entry.identityservice.model.InvalidatedToken;
 import com.dts.entry.identityservice.model.Role;
 import com.dts.entry.identityservice.model.enumerable.Status;
+import com.dts.entry.identityservice.model.enumerable.TokenType;
 import com.dts.entry.identityservice.repository.AccountRepository;
+import com.dts.entry.identityservice.repository.InvalidatedTokenRepository;
 import com.dts.entry.identityservice.repository.RoleRepository;
 import com.dts.entry.identityservice.service.AuthService;
 import com.dts.entry.identityservice.service.EmailTemplateService;
 import com.dts.entry.identityservice.service.ForgotPasswordRateLimiter;
 import com.dts.entry.identityservice.service.VerifyEmailRateLimiter;
+import com.dts.entry.identityservice.utils.CookieUtils;
 import com.dts.entry.identityservice.viewmodel.IntrospectRequest;
 import com.dts.entry.identityservice.viewmodel.request.SignUpRequest;
 import com.dts.entry.identityservice.viewmodel.request.VerifiedStatus;
@@ -25,6 +30,7 @@ import com.nimbusds.jose.crypto.MACSigner;
 import com.nimbusds.jose.crypto.MACVerifier;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -36,6 +42,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
 import java.nio.charset.StandardCharsets;
@@ -80,6 +87,7 @@ public  class AuthServiceImpl implements AuthService {
 
     AccountRepository accountRepository;
     RoleRepository roleRepository;
+    InvalidatedTokenRepository invalidatedTokenRepository;
     ObjectProvider<PasswordEncoder> passwordEncoder;
     VerifyEmailRateLimiter verifyEmailRateLimiter;
     ForgotPasswordRateLimiter forgotPasswordRateLimiter;
@@ -175,7 +183,6 @@ public  class AuthServiceImpl implements AuthService {
         }
 
         if (account.getStatus() == Status.VERIFIED) {
-            // Set cookie
             return;
         }
 
@@ -324,7 +331,6 @@ public  class AuthServiceImpl implements AuthService {
         account.setPassword(passwordEncoder.getIfAvailable().encode(newPassword));
         accountRepository.save(account);
         log.info("Password for account {} reset successfully", account.getUsername());
-        // Xoa token khoi redis
         redisService.delete(redisKey);
         log.info("Forgot password token for account {} deleted successfully", account.getUsername());
     }
@@ -348,6 +354,40 @@ public  class AuthServiceImpl implements AuthService {
             throw new AppException(Error.ErrorCodeMessage.INVALID_TOKEN,
                     Error.ErrorCode.INVALID_TOKEN, HttpStatus.CONFLICT.value());
         }
+    }
+
+    @Override
+    @Transactional
+    public void logout(HttpServletRequest request) {
+        String token = CookieUtils.getCookieValue(request, CookieConstant.ACCESS_TOKEN);
+        String refreshToken = CookieUtils.getCookieValue(request, CookieConstant.REFRESH_TOKEN);
+        if (token == null || token.isEmpty()) {
+            throw new AppException(Error.ErrorCodeMessage.UNAUTHORIZED,
+                    Error.ErrorCodeMessage.UNAUTHORIZED, HttpStatus.UNAUTHORIZED.value());
+        }
+
+        try {
+            SignedJWT signedJWT = verifyToken(token, false);
+            SignedJWT refreshSignedJWT = verifyToken(refreshToken, true);
+            String jti = signedJWT.getJWTClaimsSet().getJWTID();
+            String refreshJti = refreshSignedJWT.getJWTClaimsSet().getJWTID();
+            invalidatedTokenRepository.save(InvalidatedToken.builder()
+                            .id(jti)
+                            .expiredAt(Date.from(Instant.now()))
+                            .type(TokenType.ACCESS_TOKEN)
+                    .build());
+            invalidatedTokenRepository.save(InvalidatedToken.builder()
+                            .id(refreshJti)
+                            .expiredAt(Date.from(Instant.now()))
+                            .type(TokenType.REFRESH_TOKEN)
+                    .build());
+
+            log.info("Token with JTI {} invalidated successfully", jti);
+        } catch (ParseException | JOSEException e) {
+            throw new AppException(Error.ErrorCodeMessage.UNAUTHORIZED,
+                    Error.ErrorCodeMessage.UNAUTHORIZED, HttpStatus.UNAUTHORIZED.value());
+        }
+
     }
 
     private String generateAndStoreForgotPasswordToken(String email) {
@@ -412,8 +452,11 @@ public  class AuthServiceImpl implements AuthService {
         if (!(verified && expiryTime.after(new Date()))) throw new AppException(Error.ErrorCode.UNAUTHORIZED,
                 Error.ErrorCodeMessage.UNAUTHORIZED, HttpStatus.UNAUTHORIZED.value());
 
-//        if (invalidatedTokenRepository.existsById(signedJWT.getJWTClaimsSet().getJWTID()))
-//            throw new AppException(ErrorCode.UNAUTHENTICATED);
+        if (invalidatedTokenRepository.existsById(signedJWT.getJWTClaimsSet().getJWTID()))
+            throw new AppException(
+                    Error.ErrorCode.UNAUTHORIZED,
+                    Error.ErrorCodeMessage.UNAUTHORIZED, HttpStatus.UNAUTHORIZED.value()
+            );
 
         return signedJWT;
     }
