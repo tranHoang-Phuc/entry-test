@@ -31,6 +31,9 @@ public class SecurityConfig {
             "/auth/verify-otp",
             "/auth/verify-email/status",
             "/auth/forgot-password",
+            "/auth/reset-password",
+            "/auth/verify/reset-password-token",
+
     };
     @Autowired
     private CustomJwtDecoder customJwtDecoder;

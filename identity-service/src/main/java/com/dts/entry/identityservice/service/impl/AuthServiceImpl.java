@@ -52,7 +52,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Slf4j
-public class AuthServiceImpl implements AuthService {
+public  class AuthServiceImpl implements AuthService {
 
     @NonFinal
     @Value("${jwt.signerKey}")
@@ -327,6 +327,27 @@ public class AuthServiceImpl implements AuthService {
         // Xoa token khoi redis
         redisService.delete(redisKey);
         log.info("Forgot password token for account {} deleted successfully", account.getUsername());
+    }
+
+    @Override
+    public void verifyResetPasswordToken(String email, String token) throws JsonProcessingException {
+        String redisKey = "forgot-password-token:" + email;
+        String tokenInCache = redisService.getValue(redisKey, String.class);
+        if (tokenInCache == null) {
+            throw new AppException(Error.ErrorCodeMessage.INVALID_TOKEN,
+                    Error.ErrorCode.INVALID_TOKEN, HttpStatus.CONFLICT.value());
+        }
+        try {
+            SignedJWT signedJWT = verifyToken(token, false);
+            String subject = signedJWT.getJWTClaimsSet().getSubject();
+            if (!subject.equals(email)) {
+                throw new AppException(Error.ErrorCodeMessage.INVALID_TOKEN,
+                        Error.ErrorCode.INVALID_TOKEN, HttpStatus.CONFLICT.value());
+            }
+        } catch (ParseException | JOSEException e) {
+            throw new AppException(Error.ErrorCodeMessage.INVALID_TOKEN,
+                    Error.ErrorCode.INVALID_TOKEN, HttpStatus.CONFLICT.value());
+        }
     }
 
     private String generateAndStoreForgotPasswordToken(String email) {
