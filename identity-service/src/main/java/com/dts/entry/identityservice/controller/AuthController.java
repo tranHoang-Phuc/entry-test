@@ -109,4 +109,18 @@ public class AuthController {
         CookieUtils.revokeTokenCookies(response);
         return ResponseEntity.noContent().build();
     }
+
+    @PostMapping("/refresh-token")
+    @PermitAll
+    public ResponseEntity<BaseResponse<SignInResponse>> refreshToken(HttpServletRequest request, HttpServletResponse response) {
+        SignInResponse signInResponse = authService.refreshToken(request);
+        CookieUtils.setTokenCookies(response, signInResponse);
+        BaseResponse<SignInResponse> body = BaseResponse.<SignInResponse>builder()
+                .message("Refresh token successfully")
+                .data(signInResponse)
+                .build();
+        return ResponseEntity.ok(body);
+    }
+
+
 }

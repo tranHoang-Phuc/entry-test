@@ -22,4 +22,7 @@ public class Role {
     String description;
     @ManyToMany
     Set<Permission> permissions;
+
+    @ManyToMany(mappedBy = "roles")
+    Set<Account> accounts;
 }
