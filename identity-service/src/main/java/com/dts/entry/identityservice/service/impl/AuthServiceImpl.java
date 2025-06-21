@@ -3,7 +3,7 @@ package com.dts.entry.identityservice.service.impl;
 import com.dts.entry.event.EmailSendingRequest;
 import com.dts.entry.event.RecipientUser;
 import com.dts.entry.event.VerificationRequest;
-import com.dts.entry.identityservice.consts.CookieConstant;
+import com.dts.entry.identityservice.consts.CookieConstants;
 import com.dts.entry.identityservice.consts.Error;
 import com.dts.entry.identityservice.exception.AppException;
 import com.dts.entry.identityservice.model.Account;
@@ -50,10 +50,7 @@ import java.text.ParseException;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.Date;
-import java.util.Set;
-import java.util.StringJoiner;
-import java.util.UUID;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -359,8 +356,8 @@ public  class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public void logout(HttpServletRequest request) {
-        String token = CookieUtils.getCookieValue(request, CookieConstant.ACCESS_TOKEN);
-        String refreshToken = CookieUtils.getCookieValue(request, CookieConstant.REFRESH_TOKEN);
+        String token = CookieUtils.getCookieValue(request, CookieConstants.ACCESS_TOKEN);
+        String refreshToken = CookieUtils.getCookieValue(request, CookieConstants.REFRESH_TOKEN);
         if (token == null || token.isEmpty()) {
             throw new AppException(Error.ErrorCodeMessage.UNAUTHORIZED,
                     Error.ErrorCodeMessage.UNAUTHORIZED, HttpStatus.UNAUTHORIZED.value());
@@ -388,6 +385,51 @@ public  class AuthServiceImpl implements AuthService {
                     Error.ErrorCodeMessage.UNAUTHORIZED, HttpStatus.UNAUTHORIZED.value());
         }
 
+    }
+
+    @Override
+    public SignInResponse refreshToken(HttpServletRequest request) {
+        String refreshToken = CookieUtils.getCookieValue(request, CookieConstants.REFRESH_TOKEN);
+        if (refreshToken == null || refreshToken.isEmpty()) {
+            throw new AppException(Error.ErrorCodeMessage.UNAUTHORIZED,
+                    Error.ErrorCodeMessage.UNAUTHORIZED, HttpStatus.UNAUTHORIZED.value());
+        }
+
+        try {
+            SignedJWT signedJWT = verifyToken(refreshToken, true);
+            String username = signedJWT.getJWTClaimsSet().getSubject();
+            Account account = accountRepository.findByUsername(username)
+                    .orElseThrow(() -> new AppException(Error.ErrorCode.USER_NOT_FOUND,
+                            Error.ErrorCodeMessage.USER_NOT_FOUND, HttpStatus.NOT_FOUND.value()));
+
+            String accessToken = generateAccessToken(account);
+            String newRefreshToken = generateRefeshToken(account);
+            invalidatedTokenRepository.save(InvalidatedToken.builder()
+                            .id(signedJWT.getJWTClaimsSet().getJWTID())
+                            .expiredAt(Date.from(Instant.now()))
+                            .type(TokenType.REFRESH_TOKEN)
+                    .build());
+            return SignInResponse.builder()
+                    .accessToken(accessToken)
+                    .refreshToken(newRefreshToken)
+                    .tokenType("Bearer")
+                    .expiresIn(VALID_DURATION)
+                    .build();
+        } catch (ParseException | JOSEException e) {
+            throw new AppException(Error.ErrorCodeMessage.UNAUTHORIZED,
+                    Error.ErrorCodeMessage.UNAUTHORIZED, HttpStatus.UNAUTHORIZED.value());
+        }
+    }
+
+    @Override
+    public boolean verifyRefreshToken(String refreshToken) throws ParseException, JOSEException {
+        verifyToken(refreshToken, true);
+        return true;
+    }
+
+    @Override
+    public boolean verifyAccessToken(String accessToken) throws ParseException, JOSEException {
+        return verifyToken(accessToken, false) != null;
     }
 
     private String generateAndStoreForgotPasswordToken(String email) {
@@ -491,7 +533,7 @@ public  class AuthServiceImpl implements AuthService {
 
     private String buildScope(Account account) {
         StringJoiner stringJoiner = new StringJoiner(" ");
-
+//        List<Role> roles = roleRepository.findAllBy
         if (!CollectionUtils.isEmpty(account.getRoles()))
             account.getRoles().forEach(role -> {
                 stringJoiner.add("ROLE_" + role.getName());

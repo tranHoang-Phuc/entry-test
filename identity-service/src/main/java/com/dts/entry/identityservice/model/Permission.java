@@ -1,11 +1,10 @@
 package com.dts.entry.identityservice.model;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+
+import java.util.List;
 
 @Getter
 @Setter
@@ -21,4 +20,7 @@ public class Permission {
     String name;
     @Column(name = "description")
     String description;
+
+    @ManyToMany(mappedBy = "permissions")
+    List<Role> roles;
 }

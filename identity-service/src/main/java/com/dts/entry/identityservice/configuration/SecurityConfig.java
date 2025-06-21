@@ -2,29 +2,35 @@ package com.dts.entry.identityservice.configuration;
 
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.oauth2.server.resource.web.BearerTokenResolver;
 import org.springframework.security.oauth2.server.resource.web.DefaultBearerTokenResolver;
+import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 
+
 @Configuration
-@EnableWebSecurity
 @EnableMethodSecurity
 public class SecurityConfig {
 
     private static final String[] AUTH_WHITELIST = {
+            "/v3/api-docs/**",
+            "/swagger-ui/**",
+            "/swagger-resources/**",
+            "/webjars/**",
             "/auth/sign-in",
             "/auth/sign-up",
             "/auth/send-otp",
@@ -33,25 +39,27 @@ public class SecurityConfig {
             "/auth/forgot-password",
             "/auth/reset-password",
             "/auth/verify/reset-password-token",
-
     };
+
     @Autowired
     private CustomJwtDecoder customJwtDecoder;
+
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity httpSecurity) throws Exception {
-        httpSecurity.authorizeHttpRequests(auth -> auth
-                .requestMatchers(AUTH_WHITELIST).permitAll()
-                .anyRequest()
-                .authenticated());
-
-        httpSecurity.oauth2ResourceServer(oauth2 ->
-                oauth2.bearerTokenResolver(bearerTokenResolver()).jwt(jwtConfigurer -> jwtConfigurer
-                        .decoder(customJwtDecoder)
-                        .jwtAuthenticationConverter(jwtAuthenticationConverter())));
-        httpSecurity.csrf(AbstractHttpConfigurer::disable);
-
-        return httpSecurity.build();
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        return http
+                .csrf(AbstractHttpConfigurer::disable)
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(AUTH_WHITELIST).permitAll()
+                        .anyRequest().authenticated())
+                .oauth2ResourceServer(oauth2 -> oauth2
+                        .jwt(jwt -> jwt
+                                .decoder(customJwtDecoder)
+                                .jwtAuthenticationConverter(jwtAuthenticationConverter()))
+                )
+                .build();
     }
+
+
 
     @Bean
     JwtAuthenticationConverter jwtAuthenticationConverter() {
@@ -94,4 +102,5 @@ public class SecurityConfig {
             }
         };
     }
+
 }

@@ -1,45 +1,62 @@
 package com.dts.entry.identityservice.utils;
 
-import com.dts.entry.identityservice.consts.CookieConstant;
+import com.dts.entry.identityservice.consts.CookieConstants;
 import com.dts.entry.identityservice.viewmodel.response.SignInResponse;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
-import org.yaml.snakeyaml.scanner.Constant;
+import org.springframework.stereotype.Component;
 
+@Component
 public class CookieUtils {
+
+    private static int refreshableDuration;
+    private static int validDuration;
+
+    @Value("${jwt.refreshable-duration}")
+    public void setRefreshableDuration(int duration) {
+        CookieUtils.refreshableDuration = duration;
+    }
+
+    @Value("${jwt.valid-duration}")
+    public void setValidDuration(int duration) {
+        CookieUtils.validDuration = duration;
+    }
+
     public static void setTokenCookies(HttpServletResponse response, SignInResponse tokenResponse) {
-        ResponseCookie accessCookie = ResponseCookie.from(CookieConstant.ACCESS_TOKEN, tokenResponse.accessToken())
+        ResponseCookie accessCookie = ResponseCookie.from(CookieConstants.ACCESS_TOKEN, tokenResponse.accessToken())
                 .httpOnly(true)
                 .secure(true)
                 .path("/")
-                .maxAge(tokenResponse.expiresIn())
-                .sameSite("None")
-                .build();
-        ResponseCookie refreshCookie = ResponseCookie.from(CookieConstant.REFRESH_TOKEN, tokenResponse.refreshToken())
-                .httpOnly(true)
-                .secure(true)
-                .path("/")
-                .maxAge(tokenResponse.expiresIn())
+                .maxAge(validDuration)
                 .sameSite("None")
                 .build();
 
+        ResponseCookie refreshCookie = ResponseCookie.from(CookieConstants.REFRESH_TOKEN, tokenResponse.refreshToken())
+                .httpOnly(true)
+                .secure(true)
+                .path("/")
+                .maxAge(refreshableDuration)
+                .sameSite("None")
+                .build();
 
         response.addHeader(HttpHeaders.SET_COOKIE, accessCookie.toString());
         response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
     }
 
     public static void revokeTokenCookies(HttpServletResponse response) {
-        ResponseCookie accessCookie = ResponseCookie.from(CookieConstant.ACCESS_TOKEN, null)
+        ResponseCookie accessCookie = ResponseCookie.from(CookieConstants.ACCESS_TOKEN, "")
                 .httpOnly(true)
                 .secure(true)
                 .path("/")
                 .maxAge(0)
                 .sameSite("None")
                 .build();
-        ResponseCookie refreshCookie = ResponseCookie.from(CookieConstant.REFRESH_TOKEN, null)
+
+        ResponseCookie refreshCookie = ResponseCookie.from(CookieConstants.REFRESH_TOKEN, "")
                 .httpOnly(true)
                 .secure(true)
                 .path("/")
@@ -50,6 +67,7 @@ public class CookieUtils {
         response.addHeader(HttpHeaders.SET_COOKIE, accessCookie.toString());
         response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
     }
+
     public static void clearCookie(HttpServletResponse response) {
         Cookie accessToken = new Cookie("Authorization", null);
         accessToken.setMaxAge(0);

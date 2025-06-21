@@ -31,4 +31,10 @@ public interface AuthService {
     void verifyResetPasswordToken(String email, String token) throws JsonProcessingException;
 
     void logout(HttpServletRequest request);
+
+    SignInResponse refreshToken(HttpServletRequest request);
+
+    boolean verifyRefreshToken(String refreshToken) throws ParseException, JOSEException;
+
+    boolean verifyAccessToken(String accessToken) throws ParseException, JOSEException;
 }
