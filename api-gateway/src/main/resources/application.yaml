@@ -1,0 +1,23 @@
+spring:
+  application:
+    name: api-gateway
+
+server:
+  port: 9191
+
+management:
+  endpoints:
+    web:
+      expose:
+        include: '*'
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui
+    urls:
+      - name: identity-service
+        url: http://localhost:9191/api/v1/identity/v3/api-docs
+      - name: profile-service
+        url: http://localhost:9191/api/v1/reading/v3/api-docs
