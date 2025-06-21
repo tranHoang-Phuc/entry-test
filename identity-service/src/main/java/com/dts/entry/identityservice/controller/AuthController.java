@@ -7,6 +7,7 @@ import com.dts.entry.identityservice.viewmodel.response.BaseResponse;
 import com.dts.entry.identityservice.viewmodel.response.SignInResponse;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import jakarta.annotation.security.PermitAll;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -99,5 +100,13 @@ public class AuthController {
                 .data(null)
                 .build();
         return ResponseEntity.ok(body);
+    }
+
+    @PostMapping("/logout")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<BaseResponse<Void>> logout(HttpServletResponse response, HttpServletRequest request) {
+        authService.logout(request);
+        CookieUtils.revokeTokenCookies(response);
+        return ResponseEntity.noContent().build();
     }
 }

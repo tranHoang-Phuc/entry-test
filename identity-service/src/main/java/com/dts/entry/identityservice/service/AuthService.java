@@ -7,6 +7,7 @@ import com.dts.entry.identityservice.viewmodel.response.IntrospectResponse;
 import com.dts.entry.identityservice.viewmodel.response.SignInResponse;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.nimbusds.jose.JOSEException;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.constraints.Email;
 
 import java.text.ParseException;
@@ -28,4 +29,6 @@ public interface AuthService {
     void resetPassword(String email, String token, String newPassword) throws JsonProcessingException;
 
     void verifyResetPasswordToken(String email, String token) throws JsonProcessingException;
+
+    void logout(HttpServletRequest request);
 }
