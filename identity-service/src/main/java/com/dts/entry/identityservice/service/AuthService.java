@@ -24,4 +24,6 @@ public interface AuthService {
     VerifiedStatus isEmailVerified(String email);
 
     void forgotPassword(String email) throws JsonProcessingException;
+
+    void resetPassword(String email, String token, String newPassword) throws JsonProcessingException;
 }

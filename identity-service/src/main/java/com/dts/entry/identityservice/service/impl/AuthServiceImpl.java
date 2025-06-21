@@ -291,6 +291,44 @@ public class AuthServiceImpl implements AuthService {
         log.info("Forgot password token generated and sent to {}", email);
     }
 
+    @Override
+    public void resetPassword(String email, String token, String newPassword) throws JsonProcessingException {
+        String redisKey = "forgot-password-token:" + email;
+        String tokenInCache = redisService.getValue(redisKey, String.class);
+        if (tokenInCache == null) {
+            throw new AppException(Error.ErrorCodeMessage.INVALID_TOKEN,
+                    Error.ErrorCode.INVALID_TOKEN, HttpStatus.CONFLICT.value());
+        }
+        try {
+            SignedJWT signedJWT = verifyToken(token, false);
+            String subject = signedJWT.getJWTClaimsSet().getSubject();
+            if (!subject.equals(email)) {
+                throw new AppException(Error.ErrorCodeMessage.INVALID_TOKEN,
+                        Error.ErrorCode.INVALID_TOKEN, HttpStatus.CONFLICT.value());
+            }
+        } catch (ParseException | JOSEException e) {
+            throw new AppException(Error.ErrorCodeMessage.INVALID_TOKEN,
+                    Error.ErrorCode.INVALID_TOKEN, HttpStatus.CONFLICT.value());
+        }
+        Account account = accountRepository.findByUsername(email)
+                .orElseThrow(() -> new AppException(Error.ErrorCode.USER_NOT_FOUND,
+                        Error.ErrorCodeMessage.USER_NOT_FOUND, HttpStatus.NOT_FOUND.value()));
+        if (account.getStatus() == Status.BLOCKED || account.getStatus() == Status.DELETED) {
+            throw new AppException(Error.ErrorCode.USER_BLOCKED,
+                    Error.ErrorCodeMessage.USER_BLOCKED, HttpStatus.FORBIDDEN.value());
+        }
+        if (account.getStatus() == Status.UNVERIFIED) {
+            throw new AppException(Error.ErrorCode.USER_UNVERIFIED,
+                    Error.ErrorCodeMessage.USER_UNVERIFIED, HttpStatus.FORBIDDEN.value());
+        }
+        account.setPassword(passwordEncoder.getIfAvailable().encode(newPassword));
+        accountRepository.save(account);
+        log.info("Password for account {} reset successfully", account.getUsername());
+        // Xoa token khoi redis
+        redisService.delete(redisKey);
+        log.info("Forgot password token for account {} deleted successfully", account.getUsername());
+    }
+
     private String generateAndStoreForgotPasswordToken(String email) {
         String token = generateForgotPasswordToken(email);
         String redisKey = "forgot-password-token:" + email;
