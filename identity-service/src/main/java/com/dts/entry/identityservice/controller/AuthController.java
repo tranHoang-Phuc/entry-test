@@ -2,10 +2,13 @@ package com.dts.entry.identityservice.controller;
 
 import com.dts.entry.identityservice.service.AuthService;
 import com.dts.entry.identityservice.utils.CookieUtils;
+import com.dts.entry.identityservice.viewmodel.request.IntrospectRequest;
 import com.dts.entry.identityservice.viewmodel.request.*;
 import com.dts.entry.identityservice.viewmodel.response.BaseResponse;
+import com.dts.entry.identityservice.viewmodel.response.IntrospectResponse;
 import com.dts.entry.identityservice.viewmodel.response.SignInResponse;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.nimbusds.jose.JOSEException;
 import jakarta.annotation.security.PermitAll;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -16,6 +19,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
+import java.text.ParseException;
 
 @RestController
 @RequestMapping("/auth")
@@ -122,5 +127,15 @@ public class AuthController {
         return ResponseEntity.ok(body);
     }
 
+    @PostMapping("/introspect")
+    @PermitAll
+    public ResponseEntity<BaseResponse<IntrospectResponse>> introspect(@RequestBody IntrospectRequest request) throws ParseException, JOSEException {
+        IntrospectResponse response = authService.introspect(request);
+        BaseResponse<IntrospectResponse> body = BaseResponse.<IntrospectResponse>builder()
+                .message("Introspect token successfully")
+                .data(response)
+                .build();
+        return ResponseEntity.ok(body);
+    }
 
 }

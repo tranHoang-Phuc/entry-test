@@ -23,15 +23,30 @@ spring:
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       properties:
         spring.json.trusted.packages: "*"
-
+springdoc:
+  paths-to-match: /**
+  packages-to-scan: com.dts.entry.profileservice.controller
+  swagger-ui:
+    path: /swagger-ui
+    oauth:
+      use-pkce-with-authorization-code-grant: true
+      client-id: swagger-ui
 
 
 server:
   servlet:
     context-path: /user
   port: 8081
-
+jwt:
+  signerKey: ${JWT_SECRET}
+  valid-duration: 3600
+  refreshable-duration: 36000
+  issuer: ${JWT_ISSUER}
 
 kafka:
   topic:
     user-creation: user-creation-topic
+
+introspect:
+  service:
+    url: ${INTROSPECT_SERVICE_URL}

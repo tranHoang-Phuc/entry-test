@@ -20,4 +20,4 @@ springdoc:
       - name: identity-service
         url: http://localhost:9191/api/v1/identity/v3/api-docs
       - name: profile-service
-        url: http://localhost:9191/api/v1/reading/v3/api-docs
+        url: http://localhost:9191/api/v1/user/v3/api-docs

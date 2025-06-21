@@ -20,7 +20,7 @@ import com.dts.entry.identityservice.service.EmailTemplateService;
 import com.dts.entry.identityservice.service.ForgotPasswordRateLimiter;
 import com.dts.entry.identityservice.service.VerifyEmailRateLimiter;
 import com.dts.entry.identityservice.utils.CookieUtils;
-import com.dts.entry.identityservice.viewmodel.IntrospectRequest;
+import com.dts.entry.identityservice.viewmodel.request.IntrospectRequest;
 import com.dts.entry.identityservice.viewmodel.request.SignUpRequest;
 import com.dts.entry.identityservice.viewmodel.request.VerifiedStatus;
 import com.dts.entry.identityservice.viewmodel.response.IntrospectResponse;

@@ -1,4 +1,4 @@
-package com.dts.entry.identityservice.viewmodel;
+package com.dts.entry.identityservice.viewmodel.request;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
