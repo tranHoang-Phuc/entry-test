@@ -89,4 +89,15 @@ public class AuthController {
         authService.resetPassword(request.email(), request.token(), request.newPassword());
         return ResponseEntity.noContent().build();
     }
+
+    @PostMapping("/verify/reset-password-token")
+    @PermitAll
+    public ResponseEntity<BaseResponse<Void>> verifyResetPasswordToken(@RequestBody VerifyResetPasswordTokenRequest request) throws JsonProcessingException {
+        authService.verifyResetPasswordToken(request.email(), request.token());
+        BaseResponse<Void> body = BaseResponse.<Void>builder()
+                .message("Verify reset password token successfully")
+                .data(null)
+                .build();
+        return ResponseEntity.ok(body);
+    }
 }
