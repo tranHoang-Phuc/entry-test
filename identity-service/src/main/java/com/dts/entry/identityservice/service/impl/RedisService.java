@@ -1,4 +1,4 @@
-package com.dts.entry.identityservice.service;
+package com.dts.entry.identityservice.service.impl;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;

@@ -12,7 +12,7 @@ import com.dts.entry.identityservice.repository.AccountRepository;
 import com.dts.entry.identityservice.repository.RoleRepository;
 import com.dts.entry.identityservice.service.AuthService;
 import com.dts.entry.identityservice.service.EmailTemplateService;
-import com.dts.entry.identityservice.service.RedisService;
+import com.dts.entry.identityservice.service.ForgotPasswordRateLimiter;
 import com.dts.entry.identityservice.service.VerifyEmailRateLimiter;
 import com.dts.entry.identityservice.viewmodel.IntrospectRequest;
 import com.dts.entry.identityservice.viewmodel.request.SignUpRequest;
@@ -38,6 +38,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
+import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.time.Duration;
 import java.time.Instant;
@@ -73,10 +74,15 @@ public class AuthServiceImpl implements AuthService {
     @NonFinal
     String userVerificationTopic;
 
+    @Value("${client.domain}")
+    @NonFinal
+    String clientDomain;
+
     AccountRepository accountRepository;
     RoleRepository roleRepository;
     ObjectProvider<PasswordEncoder> passwordEncoder;
     VerifyEmailRateLimiter verifyEmailRateLimiter;
+    ForgotPasswordRateLimiter forgotPasswordRateLimiter;
     RedisService redisService;
     EmailTemplateService emailTemplateService;
     KafkaTemplate<String, Object> kafkaTemplate;
@@ -240,6 +246,92 @@ public class AuthServiceImpl implements AuthService {
                 .email(email)
                 .verified(account.getStatus() == Status.VERIFIED)
                 .build();
+    }
+
+    @Override
+    public void forgotPassword(String email) throws JsonProcessingException {
+        Account account = accountRepository.findByUsername(email)
+                .orElseThrow(() -> new AppException(Error.ErrorCode.USER_NOT_FOUND,
+                        Error.ErrorCodeMessage.USER_NOT_FOUND, HttpStatus.NOT_FOUND.value()));
+        if (account.getStatus() == Status.BLOCKED || account.getStatus() == Status.DELETED) {
+            throw new AppException(Error.ErrorCode.USER_BLOCKED,
+                    Error.ErrorCodeMessage.USER_BLOCKED, HttpStatus.FORBIDDEN.value());
+        }
+        if (account.getStatus() == Status.UNVERIFIED) {
+            throw new AppException(Error.ErrorCode.USER_UNVERIFIED,
+                    Error.ErrorCodeMessage.USER_UNVERIFIED, HttpStatus.FORBIDDEN.value());
+        }
+
+        if (forgotPasswordRateLimiter.isBlocked(email)) {
+            throw new AppException(Error.ErrorCodeMessage.FORGOT_PASSWORD_RATE_LIMIT,
+                    Error.ErrorCode.FORGOT_PASSWORD_RATE_LIMIT, HttpStatus.TOO_MANY_REQUESTS.value());
+        }
+
+        String token = generateAndStoreForgotPasswordToken(email);
+        forgotPasswordRateLimiter.recordAttempt(email);
+        String url = clientDomain + "/reset?token=" + token + "&email=" + email ;
+
+        VerificationRequest verificationRequest = VerificationRequest.builder()
+                .token(token)
+                .build();
+        String htmlContent = emailTemplateService.buildForgotPasswordEmail(url);
+        RecipientUser recipientUser = RecipientUser.builder()
+                .email(email)
+                .firstName(account.getFirstName())
+                .lastName(account.getLastName())
+                .userId(account.getAccountId())
+                .build();
+        EmailSendingRequest<VerificationRequest> emailSendingRequest = EmailSendingRequest.<VerificationRequest>builder()
+                .recipientUser(recipientUser)
+                .htmlContent(htmlContent).subject("Forgot password")
+                .data(verificationRequest)
+                .build();
+        log.info("Sending forgot password email to {}", email);
+        kafkaTemplate.send(userVerificationTopic, emailSendingRequest);
+        log.info("Forgot password token generated and sent to {}", email);
+    }
+
+    private String generateAndStoreForgotPasswordToken(String email) {
+        String token = generateForgotPasswordToken(email);
+        String redisKey = "forgot-password-token:" + email;
+        try {
+            redisService.saveValue(redisKey, token, Duration.ofMinutes(VALID_DURATION));
+        } catch (JsonProcessingException e) {
+            throw new AppException(
+                    Error.ErrorCodeMessage.UNCATEGORIZED_EXCEPTION,
+                    Error.ErrorCodeMessage.UNCATEGORIZED_EXCEPTION, HttpStatus.INTERNAL_SERVER_ERROR.value()
+            );
+        }
+        return token;
+    }
+    private String generateForgotPasswordToken(String email) {
+        JWSHeader header = new JWSHeader(JWSAlgorithm.HS512);
+
+        Instant now = Instant.now();
+        Date issueTime = Date.from(now);
+        Date expirationTime = Date.from(now.plusSeconds(VALID_DURATION));
+
+        JWTClaimsSet jwtClaimsSet = new JWTClaimsSet.Builder()
+                .subject(email)
+                .issuer(ISSUER)
+                .issueTime(issueTime)
+                .jwtID(UUID.randomUUID().toString())
+                .claim("type", "forgot_password")
+                .expirationTime(expirationTime)
+                .build();
+
+        JWSObject jwsObject = new JWSObject(header, new Payload(jwtClaimsSet.toJSONObject()));
+
+        try {
+            jwsObject.sign(new MACSigner(SIGNER_KEY.getBytes(StandardCharsets.UTF_8)));
+            return jwsObject.serialize();
+        } catch (JOSEException e) {
+            throw new AppException(
+                    Error.ErrorCode.UNAUTHORIZED,
+                    Error.ErrorCodeMessage.UNAUTHORIZED,
+                    HttpStatus.UNAUTHORIZED.value()
+            );
+        }
     }
 
     private SignedJWT verifyToken(String token, boolean isRefresh) throws JOSEException, ParseException {

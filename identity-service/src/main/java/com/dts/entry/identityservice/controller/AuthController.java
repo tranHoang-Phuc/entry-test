@@ -53,12 +53,15 @@ public class AuthController {
 
     @PostMapping("/verify-otp")
     @PermitAll
-    public ResponseEntity<BaseResponse<SignInResponse>> verifyOtp(@RequestBody VerifyOtpRequest request) throws JsonProcessingException {
+    public ResponseEntity<BaseResponse<SignInResponse>> verifyOtp(@RequestBody VerifyOtpRequest request,
+                                                                  HttpServletResponse response)
+            throws JsonProcessingException {
         SignInResponse data = authService.verifyOtp(request.email(), request.otp());
         BaseResponse<SignInResponse> body = BaseResponse.<SignInResponse>builder()
                 .message("Verify OTP successfully")
                 .data(data)
                 .build();
+        CookieUtils.setTokenCookies(response, data);
         return ResponseEntity.ok(body);
     }
 
@@ -73,10 +76,10 @@ public class AuthController {
         return ResponseEntity.ok(body);
     }
 
-    @GetMapping("/user")
-    @PreAuthorize("hasRole('USER')")
-    public String getUser() {
-        return "User endpoint accessed successfully";
+    @PostMapping("/forgot-password")
+    @PermitAll
+    public ResponseEntity<?> forgotPassword(@RequestBody ForgotPasswordRequest request) throws JsonProcessingException {
+        authService.forgotPassword(request.email());
+        return ResponseEntity.noContent().build();
     }
-
 }

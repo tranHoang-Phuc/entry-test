@@ -3,6 +3,7 @@ package com.dts.entry.identityservice.configuration;
 import com.dts.entry.identityservice.consts.PredefinedRole;
 import com.dts.entry.identityservice.model.Account;
 import com.dts.entry.identityservice.model.Role;
+import com.dts.entry.identityservice.model.enumerable.Status;
 import com.dts.entry.identityservice.repository.AccountRepository;
 import com.dts.entry.identityservice.repository.RoleRepository;
 import lombok.AccessLevel;
@@ -56,6 +57,7 @@ public class ApplicationInitConfig {
                         Account admin = Account.builder()
                                 .username(ADMIN_USER_NAME)
                                 .password(passwordEncoder.getIfAvailable().encode(ADMIN_PASSWORD))
+                                .status(Status.VERIFIED)
                                 .roles(Set.of(adminRole, userRole))
                                 .build();
 
