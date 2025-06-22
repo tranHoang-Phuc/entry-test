@@ -57,6 +57,7 @@ kafka:
     reset-password: reset-password-topic
     block-user: block-user-topic
     assign-role: assign-role-topic
+    unassign-role: unassign-role-topic
 
 introspect:
   service:

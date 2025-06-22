@@ -30,4 +30,6 @@ public interface ProfileService {
     void deleteUserAdmin(UUID profileId, HttpServletRequest request) throws ParseException;
 
     void assignRoleAdmin(UUID profileId, AssignRoleRequest roleName, HttpServletRequest request) throws ParseException;
+
+    void unAssignRoleAdmin(UUID profileId, AssignRoleRequest roleRequest, HttpServletRequest request) throws ParseException;
 }

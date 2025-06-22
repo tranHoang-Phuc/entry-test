@@ -147,7 +147,13 @@ public class ProfileController {
         return ResponseEntity.noContent().build();
     }
     // Unassign Role Admin
-
+    @DeleteMapping("/admin/users/{profileId}/roles")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> unassignRoleAdmin(@PathVariable ("profileId") UUID profileId,
+                                              @RequestBody AssignRoleRequest roleRequest, HttpServletRequest request) throws ParseException {
+        profileService.unAssignRoleAdmin(profileId, roleRequest, request);
+        return ResponseEntity.noContent().build();
+    }
     // Activate User Admin
 
     // Deactivate User Admin

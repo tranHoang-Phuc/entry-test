@@ -1,6 +1,7 @@
 package com.dts.entry.identityservice.listener;
 
 import com.dts.entry.event.AssignRoleEvent;
+import com.dts.entry.event.UnAssignRoleEvent;
 import com.dts.entry.identityservice.consts.Error;
 import com.dts.entry.identityservice.exception.AppException;
 import com.dts.entry.identityservice.model.Account;
@@ -54,5 +55,32 @@ public class RoleListener {
 
         accountRepository.save(account);
         roleRepository.saveAll(rolesOfAccount);
+    }
+
+    @KafkaListener(topics = "${kafka.topic.unassign-role}", groupId = "${spring.kafka.consumer.group-id}")
+    @Transactional
+    public void listen(UnAssignRoleEvent event) {
+        Account account = accountRepository.findById(event.accountId())
+                .orElseThrow(() -> new AppException(
+                        com.dts.entry.identityservice.consts.Error.ErrorCodeMessage.USER_NOT_FOUND,
+                        Error.ErrorCode.USER_NOT_FOUND,
+                        HttpStatus.NOT_FOUND.value()
+                ));
+
+        List<String> rolesToRemove = new ArrayList<>(event.roles());
+
+        List<Role> rolesOfAccount = roleRepository.findByAccounts(Set.of(account));
+
+        for (Role role : rolesOfAccount) {
+            if (rolesToRemove.contains(role.getName())) {
+                role.getAccounts().remove(account);
+                account.getRoles().remove(role);
+            }
+        }
+
+        accountRepository.save(account);
+        roleRepository.saveAll(rolesOfAccount);
+
+        log.info("Unassigned roles {} from account {}", rolesToRemove, account.getUsername());
     }
 }

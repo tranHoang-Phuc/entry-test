@@ -4,6 +4,7 @@ import com.cloudinary.Cloudinary;
 import com.dts.entry.event.AssignRoleEvent;
 import com.dts.entry.event.BlockAccountEvent;
 import com.dts.entry.event.ResetPasswordRequestEvent;
+import com.dts.entry.event.UnAssignRoleEvent;
 import com.dts.entry.profileservice.consts.CookieConstants;
 import com.dts.entry.profileservice.consts.Error;
 import com.dts.entry.profileservice.exception.AppException;
@@ -63,6 +64,10 @@ public class ProfileServiceImpl implements ProfileService {
     @Value("${kafka.topic.assign-role}")
     @NonFinal
     String assignRoleTopic;
+
+    @Value("${kafka.topic.unassign-role}")
+    @NonFinal
+    String unAssignRoleTopic;
 
     @Override
     @Transactional(readOnly = true)
@@ -316,6 +321,26 @@ public class ProfileServiceImpl implements ProfileService {
         kafkaTemplate.send(assignRoleTopic, assignRoleEvent);
         log.info("Assign role event sent for account ID: {}", userProfile.getAccountId());
 
+    }
+
+    @Override
+    public void unAssignRoleAdmin(UUID profileId, AssignRoleRequest roleRequest, HttpServletRequest request) throws ParseException {
+        String accessToken = CookieUtils.getCookieValue(request, CookieConstants.ACCESS_TOKEN);
+        String email = getEmailFromToken(accessToken);
+
+        UserProfile userProfile = userProfileRepository.findById(profileId)
+                .orElseThrow(() -> new AppException(Error.ErrorCode.USER_PROFILE_NOT_FOUND,
+                        Error.ErrorCodeMessage.USER_PROFILE_NOT_FOUND, HttpStatus.NOT_FOUND.value()));
+
+        if((email == userProfile.getEmail())) {
+            roleRequest.roles().remove("ADMIN");
+        }
+
+        UnAssignRoleEvent assignRoleEvent = UnAssignRoleEvent.builder()
+                .accountId(userProfile.getAccountId())
+                .roles(roleRequest.roles())
+                .build();
+        kafkaTemplate.send(unAssignRoleTopic, assignRoleEvent);
     }
 
     private String getEmailFromToken(String accessToken) throws ParseException {
