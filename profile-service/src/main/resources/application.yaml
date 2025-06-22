@@ -58,6 +58,7 @@ kafka:
     block-user: block-user-topic
     assign-role: assign-role-topic
     unassign-role: unassign-role-topic
+    change-status: change-status-topic
 
 introspect:
   service:

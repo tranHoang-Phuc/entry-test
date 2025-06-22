@@ -18,6 +18,10 @@ public record UserProfileResponse(
         @JsonProperty("date_of_birth")
         LocalDate dateOfBirth,
         @JsonProperty("image_url")
-        String imageUrl
+        String imageUrl,
+        @JsonProperty("is_deleted")
+        Boolean isDeleted,
+        @JsonProperty("status")
+        Integer status
 ) {
 }

@@ -2,10 +2,7 @@ package com.dts.entry.profileservice.controller;
 
 import com.dts.entry.profileservice.consts.PaginationConsts;
 import com.dts.entry.profileservice.service.ProfileService;
-import com.dts.entry.profileservice.viewmodel.request.AssignRoleRequest;
-import com.dts.entry.profileservice.viewmodel.request.ResetPasswordRequest;
-import com.dts.entry.profileservice.viewmodel.request.UpdatedProfileRequest;
-import com.dts.entry.profileservice.viewmodel.request.UserProfileCreation;
+import com.dts.entry.profileservice.viewmodel.request.*;
 import com.dts.entry.profileservice.viewmodel.response.BaseResponse;
 import com.dts.entry.profileservice.viewmodel.response.Pagination;
 import com.dts.entry.profileservice.viewmodel.response.UserProfileResponse;
@@ -155,6 +152,12 @@ public class ProfileController {
         return ResponseEntity.noContent().build();
     }
     // Activate User Admin
-
+    @PutMapping("/admin/users/{profileId}/status")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> activateUserAdmin(@PathVariable("profileId") UUID profileId, @RequestBody
+    StatusUpdatedRequest statusRequest,  HttpServletRequest request) throws ParseException {
+        profileService.changeStatusAdmin(profileId, statusRequest, request);
+        return ResponseEntity.noContent().build();
+    }
     // Deactivate User Admin
 }

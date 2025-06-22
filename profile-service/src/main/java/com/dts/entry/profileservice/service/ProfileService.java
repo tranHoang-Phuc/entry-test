@@ -1,9 +1,6 @@
 package com.dts.entry.profileservice.service;
 
-import com.dts.entry.profileservice.viewmodel.request.AssignRoleRequest;
-import com.dts.entry.profileservice.viewmodel.request.ResetPasswordRequest;
-import com.dts.entry.profileservice.viewmodel.request.UpdatedProfileRequest;
-import com.dts.entry.profileservice.viewmodel.request.UserProfileCreation;
+import com.dts.entry.profileservice.viewmodel.request.*;
 import com.dts.entry.profileservice.viewmodel.response.UserProfileResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.data.domain.Page;
@@ -32,4 +29,6 @@ public interface ProfileService {
     void assignRoleAdmin(UUID profileId, AssignRoleRequest roleName, HttpServletRequest request) throws ParseException;
 
     void unAssignRoleAdmin(UUID profileId, AssignRoleRequest roleRequest, HttpServletRequest request) throws ParseException;
+
+    void changeStatusAdmin(UUID profileId, StatusUpdatedRequest statusRequest, HttpServletRequest request) throws ParseException;
 }

@@ -40,4 +40,5 @@ public class UserProfile {
 
     @Column(name ="is_deleted")
     Boolean isDeleted = false;
+
 }
