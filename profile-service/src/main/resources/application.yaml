@@ -70,4 +70,4 @@ cloudinary:
   api-secret: ${CLOUDINARY_API_SECRET}
 
 internal:
-  secret: 1234567
+  secret: ${INTERNAL_SECRET}

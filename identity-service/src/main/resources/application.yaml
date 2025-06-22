@@ -74,5 +74,5 @@ client:
   domain: ${CLIENT_DOMAIN}
 
 internal:
-  secret: 1234567
+  secret: ${INTERNAL_SECRET}
 
