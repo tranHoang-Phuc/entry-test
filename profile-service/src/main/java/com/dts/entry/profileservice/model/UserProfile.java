@@ -37,4 +37,7 @@ public class UserProfile {
     @Lob
     @Lazy
     String imageUrl;
+
+    @Column(name ="is_deleted")
+    Boolean isDeleted = false;
 }

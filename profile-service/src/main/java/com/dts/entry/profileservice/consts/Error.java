@@ -20,6 +20,7 @@ public class Error {
         public static final String IMAGE_TOO_LARGE = "IMAGE_TOO_LARGE";
         public static final String ACCOUNT_CREATION_FAILED = "ACCOUNT_CREATION_FAILED";
         public static final String USER_PROFILE_ALREADY_EXISTS = "USER_PROFILE_ALREADY_EXISTS";
+        public static final String NOT_MATCHING = "NOT_MATCHING";
     }
 
     public final class ErrorCodeMessage{
@@ -41,5 +42,6 @@ public class Error {
         public static final String IMAGE_TOO_LARGE = "100023";
         public static final String ACCOUNT_CREATION_FAILED = "100024";
         public static final String USER_PROFILE_ALREADY_EXISTS = "100025";
+        public static final String NOT_MATCHING = "100026";
     }
 }

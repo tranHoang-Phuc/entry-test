@@ -35,6 +35,7 @@ import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.AccessLevel;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.NonFinal;
@@ -90,13 +91,13 @@ public class AuthServiceImpl implements AuthService {
     AccountRepository accountRepository;
     RoleRepository roleRepository;
     InvalidatedTokenRepository invalidatedTokenRepository;
+    @Getter
     ObjectProvider<PasswordEncoder> passwordEncoder;
     VerifyEmailRateLimiter verifyEmailRateLimiter;
     ForgotPasswordRateLimiter forgotPasswordRateLimiter;
     RedisService redisService;
     EmailTemplateService emailTemplateService;
     KafkaTemplate<String, Object> kafkaTemplate;
-
 
     @Override
     public SignInResponse signIn(String username, String password) {
@@ -142,6 +143,10 @@ public class AuthServiceImpl implements AuthService {
         return IntrospectResponse.builder().isValid(isValid).build();
     }
 
+    @Override
+    public ObjectProvider<PasswordEncoder> getPasswordEncoderProvider() {
+        return passwordEncoder;
+    }
 
 
     @Override

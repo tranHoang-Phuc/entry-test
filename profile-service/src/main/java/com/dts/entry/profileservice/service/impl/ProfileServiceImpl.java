@@ -1,6 +1,7 @@
 package com.dts.entry.profileservice.service.impl;
 
 import com.cloudinary.Cloudinary;
+import com.dts.entry.event.ResetPasswordRequestEvent;
 import com.dts.entry.profileservice.consts.CookieConstants;
 import com.dts.entry.profileservice.consts.Error;
 import com.dts.entry.profileservice.exception.AppException;
@@ -10,14 +11,11 @@ import com.dts.entry.profileservice.repository.client.AuthClient;
 import com.dts.entry.profileservice.service.ProfileService;
 import com.dts.entry.profileservice.utils.CookieUtils;
 import com.dts.entry.profileservice.viewmodel.request.AccountCreation;
+import com.dts.entry.profileservice.viewmodel.request.ResetPasswordRequest;
 import com.dts.entry.profileservice.viewmodel.request.UpdatedProfileRequest;
 import com.dts.entry.profileservice.viewmodel.request.UserProfileCreation;
 import com.dts.entry.profileservice.viewmodel.response.UserProfileResponse;
-import com.nimbusds.jose.JOSEException;
-import com.nimbusds.jose.JWSVerifier;
-import com.nimbusds.jose.crypto.MACVerifier;
 import com.nimbusds.jwt.SignedJWT;
-import jakarta.security.auth.message.config.AuthConfig;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -29,7 +27,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -38,8 +36,6 @@ import org.springframework.web.multipart.MultipartHttpServletRequest;
 import java.io.IOException;
 import java.text.ParseException;
 import java.time.LocalDate;
-import java.time.temporal.ChronoUnit;
-import java.util.Date;
 import java.util.Map;
 import java.util.UUID;
 
@@ -51,11 +47,15 @@ public class ProfileServiceImpl implements ProfileService {
     UserProfileRepository userProfileRepository;
     Cloudinary cloudinary;
     AuthClient authClient;
-
+    KafkaTemplate<String, Object> kafkaTemplate;
 
     @Value("${internal.secret}")
     @NonFinal
     String internalSecret;
+
+    @Value("${kafka.topic.reset-password}")
+    @NonFinal
+    String resetPasswordTopic;
 
 
 
@@ -212,6 +212,7 @@ public class ProfileServiceImpl implements ProfileService {
                 .lastName(userProfileCreation.getLastName())
                 .dateOfBirth(userProfileCreation.getBirthDate() == null ? null : userProfileCreation.getBirthDate())
                 .imageUrl(profileImageUrl)
+                .isDeleted(false)
                 .accountId(UUID.fromString(response.data().accountId()))
                 .build();
         UserProfile newProfile = userProfileRepository.save(newUserProfile);
@@ -240,6 +241,25 @@ public class ProfileServiceImpl implements ProfileService {
                 .dateOfBirth(userProfile.getDateOfBirth() == null ? null : userProfile.getDateOfBirth())
                 .imageUrl(userProfile.getImageUrl() == null ? null : userProfile.getImageUrl())
                 .build();
+    }
+
+    @Override
+    @Transactional
+    public void resetPasswordAdmin(UUID profileId, ResetPasswordRequest newPassword) {
+        UserProfile userProfile = userProfileRepository.findByAccountId(profileId)
+                .orElseThrow(() -> new AppException(Error.ErrorCode.USER_PROFILE_NOT_FOUND,
+                        Error.ErrorCodeMessage.USER_PROFILE_NOT_FOUND, HttpStatus.NOT_FOUND.value()));
+        if(!newPassword.confirmNewPassword().equals(newPassword.newPassword())) {
+            throw new AppException(Error.ErrorCode.NOT_MATCHING,
+                    Error.ErrorCodeMessage.NOT_MATCHING, HttpStatus.CONFLICT.value());
+        }
+
+        ResetPasswordRequestEvent resetPasswordRequest = ResetPasswordRequestEvent.builder()
+                .accountId(userProfile.getAccountId())
+                .newPassword(newPassword.newPassword())
+                .build();
+        kafkaTemplate.send(resetPasswordTopic, resetPasswordRequest);
+        log.info("Reset password request sent for account ID: {}", userProfile.getAccountId());
     }
 
     private String getEmailFromToken(String accessToken) throws ParseException {

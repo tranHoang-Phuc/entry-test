@@ -2,6 +2,7 @@ package com.dts.entry.profileservice.controller;
 
 import com.dts.entry.profileservice.consts.PaginationConsts;
 import com.dts.entry.profileservice.service.ProfileService;
+import com.dts.entry.profileservice.viewmodel.request.ResetPasswordRequest;
 import com.dts.entry.profileservice.viewmodel.request.UpdatedProfileRequest;
 import com.dts.entry.profileservice.viewmodel.request.UserProfileCreation;
 import com.dts.entry.profileservice.viewmodel.response.BaseResponse;
@@ -17,11 +18,11 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.text.ParseException;
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/profile")
@@ -118,13 +119,19 @@ public class ProfileController {
         return ResponseEntity.ok(response);
     }
     // Reset Password Admin
-
+    @PostMapping("/admin/users/{profileId}/reset-password")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> resetPasswordAdmin(
+            @PathVariable("profileId") UUID profileId,
+            @RequestBody ResetPasswordRequest newPassword) {
+        profileService.resetPasswordAdmin(profileId, newPassword);
+        return ResponseEntity.noContent().build();
+    }
     // Soft Delete user Admin
 
     // Assign Role Admin
 
     // Unassign Role Admin
-
 
     // Activate User Admin
 
