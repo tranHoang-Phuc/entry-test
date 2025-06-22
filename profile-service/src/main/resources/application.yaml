@@ -1,4 +1,9 @@
 spring:
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
   application:
     name: profile-service
   datasource:
@@ -50,3 +55,11 @@ kafka:
 introspect:
   service:
     url: ${INTROSPECT_SERVICE_URL}
+
+cloudinary:
+  cloud-name: ${CLOUDINARY_CLOUD_NAME}
+  api-key: ${CLOUDINARY_API_KEY}
+  api-secret: ${CLOUDINARY_API_SECRET}
+
+internal:
+  secret: 1234567

@@ -15,6 +15,11 @@ public class Error {
         public static final String FORGOT_PASSWORD_RATE_LIMIT = "FORGOT_PASSWORD_RATE_LIMIT";
         public static final String INVALID_TOKEN = "INVALID_TOKEN";
 
+        public static final String USER_PROFILE_NOT_FOUND = "USER_PROFILE_NOT_FOUND";
+        public static final String INVALID_IMAGE_TYPE = "INVALID_IMAGE_TYPE";
+        public static final String IMAGE_TOO_LARGE = "IMAGE_TOO_LARGE";
+        public static final String ACCOUNT_CREATION_FAILED = "ACCOUNT_CREATION_FAILED";
+        public static final String USER_PROFILE_ALREADY_EXISTS = "USER_PROFILE_ALREADY_EXISTS";
     }
 
     public final class ErrorCodeMessage{
@@ -31,5 +36,10 @@ public class Error {
 
         public static final String FORGOT_PASSWORD_RATE_LIMIT = "000019";
         public static final String INVALID_TOKEN = "000020";
+        public static final String USER_PROFILE_NOT_FOUND = "100021";
+        public static final String INVALID_IMAGE_TYPE = "100022";
+        public static final String IMAGE_TOO_LARGE = "100023";
+        public static final String ACCOUNT_CREATION_FAILED = "100024";
+        public static final String USER_PROFILE_ALREADY_EXISTS = "100025";
     }
 }

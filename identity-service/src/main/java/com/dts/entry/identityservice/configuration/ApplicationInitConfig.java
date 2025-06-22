@@ -6,6 +6,7 @@ import com.dts.entry.identityservice.model.Role;
 import com.dts.entry.identityservice.model.enumerable.Status;
 import com.dts.entry.identityservice.repository.AccountRepository;
 import com.dts.entry.identityservice.repository.RoleRepository;
+import com.dts.entry.identityservice.service.AuthService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -45,7 +46,7 @@ public class ApplicationInitConfig {
             prefix = "spring",
             value = "datasource.driver-class-name",
             havingValue = "org.postgresql.Driver")
-    ApplicationRunner applicationRunner(AccountRepository accountRepository, RoleRepository roleRepository) {
+    ApplicationRunner applicationRunner(AuthService authService, AccountRepository accountRepository ,RoleRepository roleRepository) {
         return args -> {
             accountRepository.findByUsername(ADMIN_USER_NAME).ifPresentOrElse(
                     user -> log.info("Admin user already exists: {}", ADMIN_USER_NAME),
@@ -63,7 +64,8 @@ public class ApplicationInitConfig {
                                 .roles(Set.of(adminRole, userRole))
                                 .build();
 
-                        accountRepository.save(admin);
+                        admin=accountRepository.save(admin);
+                        authService.createProfile(admin.getUsername(), admin.getFirstName(), admin.getLastName(), admin.getAccountId());
                         log.info("Admin user created: {}", ADMIN_USER_NAME);
                     }
                     );

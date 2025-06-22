@@ -1,6 +1,7 @@
 package com.dts.entry.profileservice.exception;
 
 
+import com.dts.entry.profileservice.consts.Error;
 import com.dts.entry.profileservice.viewmodel.error.ErrorVm;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.env.Environment;
@@ -55,7 +56,7 @@ public class GlobalExceptionHandler {
                 .anyMatch(env -> env.equalsIgnoreCase("dev") || env.equalsIgnoreCase("local"));
 
         String finalMessage = message != null ? message : "Unexpected error";
-        String finalCode = errorCode != null ? errorCode : com.dts.entry.profileservice.consts.Error.ErrorCode.UNCATEGORIZED_EXCEPTION;
+        String finalCode = errorCode != null ? errorCode : Error.ErrorCode.UNCATEGORIZED_EXCEPTION;
 
         if (isDev) {
             String stackTrace = Arrays.stream(ex.getStackTrace())

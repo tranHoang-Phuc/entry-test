@@ -1,8 +1,10 @@
 package com.dts.entry.identityservice.service;
 
+import com.dts.entry.identityservice.viewmodel.request.AccountCreation;
 import com.dts.entry.identityservice.viewmodel.request.IntrospectRequest;
 import com.dts.entry.identityservice.viewmodel.request.SignUpRequest;
 import com.dts.entry.identityservice.viewmodel.request.VerifiedStatus;
+import com.dts.entry.identityservice.viewmodel.response.AccountCreationResponse;
 import com.dts.entry.identityservice.viewmodel.response.IntrospectResponse;
 import com.dts.entry.identityservice.viewmodel.response.SignInResponse;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -11,6 +13,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.constraints.Email;
 
 import java.text.ParseException;
+import java.util.UUID;
 
 public interface AuthService {
     SignInResponse signIn(String username, String password);
@@ -37,4 +40,7 @@ public interface AuthService {
     boolean verifyRefreshToken(String refreshToken) throws ParseException, JOSEException;
 
     boolean verifyAccessToken(String accessToken) throws ParseException, JOSEException;
+    void createProfile(String email, String firstName, String lastName, UUID accountId) ;
+
+    AccountCreationResponse createAccount(AccountCreation accountCreation);
 }

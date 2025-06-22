@@ -2,7 +2,9 @@ package com.dts.entry.identityservice.viewmodel.error;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Builder;
 
+@Builder
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record ErrorVm(String status,
                       @JsonProperty("error_code")

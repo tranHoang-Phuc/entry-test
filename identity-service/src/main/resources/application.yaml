@@ -62,3 +62,6 @@ rate-limiter:
 client:
   domain: ${CLIENT_DOMAIN}
 
+internal:
+  secret: 1234567
+

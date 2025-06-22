@@ -39,7 +39,11 @@ public class SecurityConfig {
             "/auth/forgot-password",
             "/auth/reset-password",
             "/auth/verify/reset-password-token",
-            "/auth/introspect"
+            "/auth/introspect",
+            "/auth/refresh-token",
+            "/auth/logout",
+            "/auth/internal/**",
+
     };
 
     @Autowired

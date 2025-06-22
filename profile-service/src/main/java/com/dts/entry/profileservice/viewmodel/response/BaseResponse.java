@@ -1,12 +1,14 @@
 package com.dts.entry.profileservice.viewmodel.response;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Builder;
 
 @Builder
 public record BaseResponse<T>(
         String status,
         String message,
-        T data
+        T data,
+        @JsonInclude(JsonInclude.Include.NON_NULL) Pagination pagination
 ) {
     public BaseResponse {
         if (status == null) {
