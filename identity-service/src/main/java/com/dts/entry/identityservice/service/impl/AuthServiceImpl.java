@@ -20,9 +20,11 @@ import com.dts.entry.identityservice.service.EmailTemplateService;
 import com.dts.entry.identityservice.service.ForgotPasswordRateLimiter;
 import com.dts.entry.identityservice.service.VerifyEmailRateLimiter;
 import com.dts.entry.identityservice.utils.CookieUtils;
+import com.dts.entry.identityservice.viewmodel.request.AccountCreation;
 import com.dts.entry.identityservice.viewmodel.request.IntrospectRequest;
 import com.dts.entry.identityservice.viewmodel.request.SignUpRequest;
 import com.dts.entry.identityservice.viewmodel.request.VerifiedStatus;
+import com.dts.entry.identityservice.viewmodel.response.AccountCreationResponse;
 import com.dts.entry.identityservice.viewmodel.response.IntrospectResponse;
 import com.dts.entry.identityservice.viewmodel.response.SignInResponse;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -57,7 +59,7 @@ import java.util.*;
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Slf4j
-public  class AuthServiceImpl implements AuthService {
+public class AuthServiceImpl implements AuthService {
 
     @NonFinal
     @Value("${jwt.signerKey}")
@@ -116,7 +118,7 @@ public  class AuthServiceImpl implements AuthService {
                     Error.ErrorCodeMessage.UNAUTHORIZED, HttpStatus.UNAUTHORIZED.value());
         }
         var accessToken = generateAccessToken(account);
-        var refreshToken = generateRefeshToken(account);
+        var refreshToken = generateRefreshToken(account);
 
         return SignInResponse.builder()
                 .accessToken(accessToken)
@@ -168,6 +170,7 @@ public  class AuthServiceImpl implements AuthService {
                 .accountId(account.getAccountId())
                 .firstName(request.firstName())
                 .lastName(request.lastName())
+                .email(account.getUsername())
                 .build();
 
         kafkaTemplate.send(userCreationTopic, userCreation);
@@ -239,7 +242,7 @@ public  class AuthServiceImpl implements AuthService {
             log.info("Account {} verified successfully", account.getUsername());
 
             String accessToken = generateAccessToken(account);
-            String refreshToken = generateRefeshToken(account);
+            String refreshToken = generateRefreshToken(account);
 
             return SignInResponse.builder()
                     .accessToken(accessToken)
@@ -414,7 +417,7 @@ public  class AuthServiceImpl implements AuthService {
                             Error.ErrorCodeMessage.USER_NOT_FOUND, HttpStatus.NOT_FOUND.value()));
 
             String accessToken = generateAccessToken(account);
-            String newRefreshToken = generateRefeshToken(account);
+            String newRefreshToken = generateRefreshToken(account);
             invalidatedTokenRepository.save(InvalidatedToken.builder()
                             .id(signedJWT.getJWTClaimsSet().getJWTID())
                             .expiredAt(Date.from(Instant.now()))
@@ -441,6 +444,49 @@ public  class AuthServiceImpl implements AuthService {
     @Override
     public boolean verifyAccessToken(String accessToken) throws ParseException, JOSEException {
         return verifyToken(accessToken, false) != null;
+    }
+
+    @Override
+    public void createProfile(String email, String firstName, String lastName, UUID accountID) {
+        kafkaTemplate.send(userCreationTopic, UserCreation.builder()
+                .accountId(accountID)
+                .firstName(firstName)
+                .lastName(lastName)
+                .email(email)
+                .build());
+        log.info("User profile creation event sent for account {}", email);
+    }
+
+    @Override
+    public AccountCreationResponse createAccount(AccountCreation accountCreation) {
+        if (accountRepository.existsByUsername(accountCreation.email())) {
+            throw new AppException(Error.ErrorCode.USERNAME_ALREADY_EXISTS,
+                    Error.ErrorCodeMessage.USERNAME_ALREADY_EXISTS, HttpStatus.CONFLICT.value());
+        }
+
+        List<Role> roles = Arrays.stream(accountCreation.roles()).map(
+                role -> roleRepository.findByName(role)
+                        .orElseThrow(() -> new AppException(Error.ErrorCode.ROLE_NOT_FOUND,
+                                Error.ErrorCodeMessage.ROLE_NOT_FOUND, HttpStatus.NOT_FOUND.value()))).toList();
+
+        Account account = Account.builder()
+                .username(accountCreation.email())
+                .password(passwordEncoder.getIfAvailable().encode(accountCreation.password()))
+                .roles(new HashSet<>(roles))
+                .firstName(accountCreation.firstName())
+                .lastName(accountCreation.lastName())
+                .status(Status.VERIFIED)
+                .build();
+
+        account = accountRepository.save(account);
+        log.info("Account {} created successfully", account.getUsername());
+
+        return AccountCreationResponse.builder()
+                .accountId(account.getAccountId().toString())
+                .email(account.getUsername())
+                .firstName(account.getFirstName())
+                .lastName(account.getLastName())
+                .build();
     }
 
     private String generateAndStoreForgotPasswordToken(String email) {
@@ -555,7 +601,7 @@ public  class AuthServiceImpl implements AuthService {
         return stringJoiner.toString();
     }
 
-    private String generateRefeshToken(Account account) {
+    private String generateRefreshToken(Account account) {
         JWSHeader header = new JWSHeader(JWSAlgorithm.HS512);
 
         JWTClaimsSet jwtClaimsSet = new JWTClaimsSet.Builder()

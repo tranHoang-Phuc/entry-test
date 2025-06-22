@@ -8,6 +8,7 @@ import java.util.UUID;
 public record UserCreation(
         UUID accountId,
         String firstName,
-        String lastName
+        String lastName,
+        String email
 ) {
 }

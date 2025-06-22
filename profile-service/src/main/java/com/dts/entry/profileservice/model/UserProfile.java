@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 import org.hibernate.annotations.GenericGenerator;
+import org.springframework.context.annotation.Lazy;
 
 import java.time.LocalDate;
 import java.util.UUID;
@@ -30,6 +31,10 @@ public class UserProfile {
     String lastName;
     @Column(name ="date_of_birth")
     LocalDate dateOfBirth;
+    @Column(name = "email", unique = true)
+    String email;
     @Column(name = "image_url", columnDefinition = "TEXT")
+    @Lob
+    @Lazy
     String imageUrl;
 }

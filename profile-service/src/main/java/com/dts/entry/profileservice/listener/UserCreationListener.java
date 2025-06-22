@@ -1,6 +1,8 @@
 package com.dts.entry.profileservice.listener;
 
 import com.dts.entry.event.UserCreation;
+import com.dts.entry.profileservice.consts.Error;
+import com.dts.entry.profileservice.exception.AppException;
 import com.dts.entry.profileservice.model.UserProfile;
 import com.dts.entry.profileservice.repository.UserProfileRepository;
 import lombok.AccessLevel;
@@ -22,6 +24,7 @@ public class UserCreationListener {
                 .accountId(user.accountId())
                 .firstName(user.firstName())
                 .lastName(user.lastName())
+                .email(user.email())
                 .build();
         log.info("Received user creation event: {}", user);
         userProfileRepository.save(userProfile);

@@ -2,10 +2,9 @@ package com.dts.entry.profileservice.configuration;
 
 
 import com.dts.entry.profileservice.exception.AppException;
-import com.dts.entry.profileservice.repository.client.IntrospectClient;
+import com.dts.entry.profileservice.repository.client.AuthClient;
 import com.dts.entry.profileservice.viewmodel.request.IntrospectRequest;
 import com.dts.entry.profileservice.viewmodel.response.IntrospectResponse;
-import com.nimbusds.jose.JOSEException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -17,7 +16,6 @@ import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.spec.SecretKeySpec;
-import java.text.ParseException;
 import java.util.Objects;
 
 @Component
@@ -26,7 +24,7 @@ public class CustomJwtDecoder implements JwtDecoder {
     private String signerKey;
 
     @Autowired
-    private IntrospectClient introspectClient   ;
+    private AuthClient authClient;
 
     private NimbusJwtDecoder nimbusJwtDecoder = null;
 
@@ -34,7 +32,7 @@ public class CustomJwtDecoder implements JwtDecoder {
     public Jwt decode(String token) throws JwtException {
         IntrospectResponse response = null;
 
-        response = introspectClient.introspect(IntrospectRequest.builder()
+        response = authClient.introspect(IntrospectRequest.builder()
                         .accessToken(token)
                 .build()).data();
 
