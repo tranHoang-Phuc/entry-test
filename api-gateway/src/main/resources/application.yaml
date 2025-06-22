@@ -8,8 +8,9 @@ server:
 management:
   endpoints:
     web:
-      expose:
+      exposure:
         include: '*'
+
 springdoc:
   api-docs:
     enabled: true
@@ -18,6 +19,14 @@ springdoc:
     path: /swagger-ui
     urls:
       - name: identity-service
-        url: http://localhost:9191/api/v1/identity/v3/api-docs
+        url: http://${domain.identity-service}/api/v1/identity/v3/api-docs
       - name: profile-service
-        url: http://localhost:9191/api/v1/user/v3/api-docs
+        url: http://${domain.profile-service}/api/v1/user/v3/api-docs
+
+client:
+  domain: ${CLIENT_DOMAIN}
+
+domain:
+  identity-service: ${IDENTITY_SERVICE_DOMAIN}
+  profile-service: ${PROFILE_SERVICE_DOMAIN}
+  gateway: ${GATEWAY_DOMAIN}

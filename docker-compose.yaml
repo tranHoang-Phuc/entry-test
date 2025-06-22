@@ -1,6 +1,6 @@
 services:
-  postgres:
-    container_name: postgres
+  postgres-entry:
+    container_name: postgres-entry
     build:
       context: ./docker/postgres
       dockerfile: Dockerfile
@@ -19,7 +19,7 @@ services:
     networks:
       - entry-network
 
-  redis:
+  redis-entry:
     container_name: redis-entry
     image: redis:7.4.1-alpine
     restart: always
@@ -33,7 +33,7 @@ services:
     networks:
       - entry-network
 
-  kafka:
+  kafka-entry:
     image: 'bitnami/kafka:3.7.0'
     container_name: kafka-entry
     hostname: ${KAFKA_SERVICE_HOST}
@@ -52,6 +52,102 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: ${KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR}
     networks:
       - entry-network
+
+  identity-service-entry:
+    container_name: identity-service-entry
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: identity-runtime
+    hostname: identity-service-entry
+    ports:
+      - "8090:8090"
+    environment:
+      POSTGRES_URL: ${POSTGRES_URL}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_DATA_REDIS_HOST: ${SPRING_DATA_REDIS_HOST}
+      SPRING_DATA_REDIS_PORT: ${SPRING_DATA_REDIS_PORT}
+      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_ISSUER: ${JWT_ISSUER}
+      ADMIN_USERNAME: ${ADMIN_USERNAME}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      CLIENT_DOMAIN: ${CLIENT_DOMAIN}
+      INTERNAL_SECRET: ${INTERNAL_SECRET}
+    networks:
+      - entry-network
+    depends_on:
+      - postgres-entry
+      - redis-entry
+      - kafka-entry
+
+  notification-service-entry:
+    container_name: notification-service-entry
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: notification-runtime
+    hostname: notification-service-entry
+    ports:
+      - "8082:8082"
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
+      BREVO_API_KEY: ${BREVO_API_KEY}
+    networks:
+      - entry-network
+    depends_on:
+      - identity-service-entry
+
+  profile-service-entry:
+    container_name: profile-service-entry
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: profile-runtime
+    hostname: profile-service-entry
+    ports:
+      - "8081:8081"
+    environment:
+      POSTGRES_URL_PROFILE: ${POSTGRES_URL_PROFILE}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_ISSUER: ${JWT_ISSUER}
+      INTROSPECT_SERVICE_URL: ${INTROSPECT_SERVICE_URL}
+      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY}
+      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET}
+      INTERNAL_SECRET: ${INTERNAL_SECRET}
+    networks:
+      - entry-network
+    depends_on:
+      - postgres-entry
+      - kafka-entry
+
+  api-gateway-entry:
+    container_name: api-gateway-entry
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: gateway-runtime
+    hostname: api-gateway-entry
+    ports:
+      - "9191:9191"
+    environment:
+      CLIENT_DOMAIN: ${CLIENT_DOMAIN}
+      IDENTITY_SERVICE_DOMAIN: ${IDENTITY_SERVICE_DOMAIN}
+      PROFILE_SERVICE_DOMAIN: ${PROFILE_SERVICE_DOMAIN}
+      GATEWAY_DOMAIN: ${GATEWAY_DOMAIN}
+    networks:
+      - entry-network
+    depends_on:
+      - identity-service-entry
+      - profile-service-entry
+      - notification-service-entry
+
+
 
 volumes:
   postgres:
