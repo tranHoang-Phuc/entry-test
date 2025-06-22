@@ -5,6 +5,7 @@ import com.dts.entry.identityservice.viewmodel.request.IntrospectRequest;
 import com.dts.entry.identityservice.viewmodel.request.SignUpRequest;
 import com.dts.entry.identityservice.viewmodel.request.VerifiedStatus;
 import com.dts.entry.identityservice.viewmodel.response.AccountCreationResponse;
+import com.dts.entry.identityservice.viewmodel.response.AccountDetailResponse;
 import com.dts.entry.identityservice.viewmodel.response.IntrospectResponse;
 import com.dts.entry.identityservice.viewmodel.response.SignInResponse;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -45,4 +46,6 @@ public interface AuthService {
     void createProfile(String email, String firstName, String lastName, UUID accountId) ;
 
     AccountCreationResponse createAccount(AccountCreation accountCreation);
+
+    AccountDetailResponse getAccountById(UUID id);
 }

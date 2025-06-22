@@ -16,8 +16,9 @@ public interface AccountRepository extends JpaRepository<Account, UUID> {
     boolean existsByUsername(String username);
 
     @Query("""
-    SELECT a FROM Account a
-    LEFT JOIN FETCH a.roles
+    SELECT DISTINCT a FROM Account a
+    LEFT JOIN FETCH a.roles r
+    LEFT JOIN FETCH r.permissions
     WHERE a.accountId = :accountID
 """)
     Optional<Account> findByAccountID(@Param("accountID") UUID accountID);

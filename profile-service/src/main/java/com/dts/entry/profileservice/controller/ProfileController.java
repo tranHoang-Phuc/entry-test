@@ -104,7 +104,7 @@ public class ProfileController {
         return ResponseEntity.ok(response);
     }
     // View Detail User ADmin
-    @PostMapping("/admin/users/{profileId}")
+    @GetMapping("/admin/users/{profileId}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<BaseResponse<UserProfileResponse>> getUserDetailAdmin(
             @PathVariable("profileId") String profileId) throws ParseException {
@@ -159,5 +159,4 @@ public class ProfileController {
         profileService.changeStatusAdmin(profileId, statusRequest, request);
         return ResponseEntity.noContent().build();
     }
-    // Deactivate User Admin
 }

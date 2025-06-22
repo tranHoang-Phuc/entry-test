@@ -244,6 +244,7 @@ public class ProfileServiceImpl implements ProfileService {
         UserProfile userProfile = userProfileRepository.findById(UUID.fromString(profileId))
                 .orElseThrow(() -> new AppException(Error.ErrorCode.USER_PROFILE_NOT_FOUND,
                         Error.ErrorCodeMessage.USER_PROFILE_NOT_FOUND, HttpStatus.NOT_FOUND.value()));
+        var account = authClient.getAccountById(internalSecret, userProfile.getAccountId());
         return UserProfileResponse.builder()
                 .id(userProfile.getProfileId().toString())
                 .firstName(userProfile.getFirstName())
@@ -251,6 +252,7 @@ public class ProfileServiceImpl implements ProfileService {
                 .email(userProfile.getEmail())
                 .dateOfBirth(userProfile.getDateOfBirth() == null ? null : userProfile.getDateOfBirth())
                 .imageUrl(userProfile.getImageUrl() == null ? null : userProfile.getImageUrl())
+                .account(account.data())
                 .build();
     }
 
