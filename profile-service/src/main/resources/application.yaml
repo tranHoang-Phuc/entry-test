@@ -21,6 +21,9 @@ spring:
       ddl-auto: update
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
     consumer:
       group-id: profile-group
       auto-offset-reset: earliest
@@ -51,6 +54,11 @@ jwt:
 kafka:
   topic:
     user-creation: user-creation-topic
+    reset-password: reset-password-topic
+    block-user: block-user-topic
+    assign-role: assign-role-topic
+    unassign-role: unassign-role-topic
+    change-status: change-status-topic
 
 introspect:
   service:

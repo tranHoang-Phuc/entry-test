@@ -1,6 +1,7 @@
 package com.dts.entry.profileservice.service.impl;
 
 import com.cloudinary.Cloudinary;
+import com.dts.entry.event.*;
 import com.dts.entry.profileservice.consts.CookieConstants;
 import com.dts.entry.profileservice.consts.Error;
 import com.dts.entry.profileservice.exception.AppException;
@@ -9,15 +10,9 @@ import com.dts.entry.profileservice.repository.UserProfileRepository;
 import com.dts.entry.profileservice.repository.client.AuthClient;
 import com.dts.entry.profileservice.service.ProfileService;
 import com.dts.entry.profileservice.utils.CookieUtils;
-import com.dts.entry.profileservice.viewmodel.request.AccountCreation;
-import com.dts.entry.profileservice.viewmodel.request.UpdatedProfileRequest;
-import com.dts.entry.profileservice.viewmodel.request.UserProfileCreation;
+import com.dts.entry.profileservice.viewmodel.request.*;
 import com.dts.entry.profileservice.viewmodel.response.UserProfileResponse;
-import com.nimbusds.jose.JOSEException;
-import com.nimbusds.jose.JWSVerifier;
-import com.nimbusds.jose.crypto.MACVerifier;
 import com.nimbusds.jwt.SignedJWT;
-import jakarta.security.auth.message.config.AuthConfig;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -29,7 +24,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -38,8 +33,6 @@ import org.springframework.web.multipart.MultipartHttpServletRequest;
 import java.io.IOException;
 import java.text.ParseException;
 import java.time.LocalDate;
-import java.time.temporal.ChronoUnit;
-import java.util.Date;
 import java.util.Map;
 import java.util.UUID;
 
@@ -51,13 +44,31 @@ public class ProfileServiceImpl implements ProfileService {
     UserProfileRepository userProfileRepository;
     Cloudinary cloudinary;
     AuthClient authClient;
-
+    KafkaTemplate<String, Object> kafkaTemplate;
 
     @Value("${internal.secret}")
     @NonFinal
     String internalSecret;
 
+    @Value("${kafka.topic.reset-password}")
+    @NonFinal
+    String resetPasswordTopic;
 
+    @Value("${kafka.topic.block-user}")
+    @NonFinal
+    String blockUserTopic;
+
+    @Value("${kafka.topic.assign-role}")
+    @NonFinal
+    String assignRoleTopic;
+
+    @Value("${kafka.topic.unassign-role}")
+    @NonFinal
+    String unAssignRoleTopic;
+
+    @Value("${kafka.topic.change-status}")
+    @NonFinal
+    String changeStatusTopic;
 
     @Override
     @Transactional(readOnly = true)
@@ -212,6 +223,7 @@ public class ProfileServiceImpl implements ProfileService {
                 .lastName(userProfileCreation.getLastName())
                 .dateOfBirth(userProfileCreation.getBirthDate() == null ? null : userProfileCreation.getBirthDate())
                 .imageUrl(profileImageUrl)
+                .isDeleted(false)
                 .accountId(UUID.fromString(response.data().accountId()))
                 .build();
         UserProfile newProfile = userProfileRepository.save(newUserProfile);
@@ -240,6 +252,120 @@ public class ProfileServiceImpl implements ProfileService {
                 .dateOfBirth(userProfile.getDateOfBirth() == null ? null : userProfile.getDateOfBirth())
                 .imageUrl(userProfile.getImageUrl() == null ? null : userProfile.getImageUrl())
                 .build();
+    }
+
+    @Override
+    @Transactional
+    public void resetPasswordAdmin(UUID profileId, ResetPasswordRequest newPassword) {
+        UserProfile userProfile = userProfileRepository.findByAccountId(profileId)
+                .orElseThrow(() -> new AppException(Error.ErrorCode.USER_PROFILE_NOT_FOUND,
+                        Error.ErrorCodeMessage.USER_PROFILE_NOT_FOUND, HttpStatus.NOT_FOUND.value()));
+        if(!newPassword.confirmNewPassword().equals(newPassword.newPassword())) {
+            throw new AppException(Error.ErrorCode.NOT_MATCHING,
+                    Error.ErrorCodeMessage.NOT_MATCHING, HttpStatus.CONFLICT.value());
+        }
+
+        ResetPasswordRequestEvent resetPasswordRequest = ResetPasswordRequestEvent.builder()
+                .accountId(userProfile.getAccountId())
+                .newPassword(newPassword.newPassword())
+                .build();
+        kafkaTemplate.send(resetPasswordTopic, resetPasswordRequest);
+        log.info("Reset password request sent for account ID: {}", userProfile.getAccountId());
+    }
+
+    @Override
+    public void deleteUserAdmin(UUID profileId, HttpServletRequest request) throws ParseException {
+        String accessToken = CookieUtils.getCookieValue(request, CookieConstants.ACCESS_TOKEN);
+        String email = getEmailFromToken(accessToken);
+
+        UserProfile userProfile = userProfileRepository.findById(profileId)
+                .orElseThrow(() -> new AppException(Error.ErrorCode.USER_PROFILE_NOT_FOUND,
+                        Error.ErrorCodeMessage.USER_PROFILE_NOT_FOUND, HttpStatus.NOT_FOUND.value()));
+
+        if(userProfile.getEmail().equals(email)) {
+            throw new AppException(Error.ErrorCode.FORBIDDEN,
+                    Error.ErrorCodeMessage.FORBIDDEN, HttpStatus.FORBIDDEN.value());
+        }
+
+        userProfile.setIsDeleted(true);
+        userProfileRepository.save(userProfile);
+        BlockAccountEvent blockAccountEvent = BlockAccountEvent.builder()
+                .accountId(userProfile.getAccountId())
+                .build();
+        kafkaTemplate.send(blockUserTopic, blockAccountEvent);
+        log.info("User with profile ID: {} has been soft deleted and account blocked", profileId);
+    }
+
+    @Override
+    public void assignRoleAdmin(UUID profileId, AssignRoleRequest roleName, HttpServletRequest request) throws ParseException {
+        String accessToken = CookieUtils.getCookieValue(request, CookieConstants.ACCESS_TOKEN);
+        String email = getEmailFromToken(accessToken);
+
+        UserProfile userProfile = userProfileRepository.findById(profileId)
+                .orElseThrow(() -> new AppException(Error.ErrorCode.USER_PROFILE_NOT_FOUND,
+                        Error.ErrorCodeMessage.USER_PROFILE_NOT_FOUND, HttpStatus.NOT_FOUND.value()));
+
+        if((email.equals(userProfile.getEmail()))) {
+            roleName.roles().remove("ADMIN");
+        }
+
+        if(roleName.roles() == null || roleName.roles().isEmpty()) {
+            throw new AppException(Error.ErrorCode.NOT_MATCHING,
+                    Error.ErrorCodeMessage.NOT_MATCHING, HttpStatus.BAD_REQUEST.value());
+        }
+
+        AssignRoleEvent assignRoleEvent = AssignRoleEvent.builder()
+                .accountId(userProfile.getAccountId())
+                .roles(roleName.roles())
+                .build();
+
+        kafkaTemplate.send(assignRoleTopic, assignRoleEvent);
+        log.info("Assign role event sent for account ID: {}", userProfile.getAccountId());
+
+    }
+
+    @Override
+    public void unAssignRoleAdmin(UUID profileId, AssignRoleRequest roleRequest, HttpServletRequest request) throws ParseException {
+        String accessToken = CookieUtils.getCookieValue(request, CookieConstants.ACCESS_TOKEN);
+        String email = getEmailFromToken(accessToken);
+
+        UserProfile userProfile = userProfileRepository.findById(profileId)
+                .orElseThrow(() -> new AppException(Error.ErrorCode.USER_PROFILE_NOT_FOUND,
+                        Error.ErrorCodeMessage.USER_PROFILE_NOT_FOUND, HttpStatus.NOT_FOUND.value()));
+
+        if((email.equals(userProfile.getEmail()))) {
+            roleRequest.roles().remove("ADMIN");
+        }
+
+        UnAssignRoleEvent assignRoleEvent = UnAssignRoleEvent.builder()
+                .accountId(userProfile.getAccountId())
+                .roles(roleRequest.roles())
+                .build();
+        kafkaTemplate.send(unAssignRoleTopic, assignRoleEvent);
+    }
+
+    @Override
+    public void changeStatusAdmin(UUID profileId, StatusUpdatedRequest statusRequest, HttpServletRequest request) throws ParseException {
+        String accessToken = CookieUtils.getCookieValue(request, CookieConstants.ACCESS_TOKEN);
+        String email = getEmailFromToken(accessToken);
+        UserProfile userProfile = userProfileRepository.findById(profileId)
+                .orElseThrow(() -> new AppException(Error.ErrorCode.USER_PROFILE_NOT_FOUND,
+                        Error.ErrorCodeMessage.USER_PROFILE_NOT_FOUND, HttpStatus.NOT_FOUND.value()));
+
+        if((email.equals(userProfile.getEmail())) && statusRequest.status() == 3) {
+            throw new AppException(Error.ErrorCode.FORBIDDEN,
+                    Error.ErrorCodeMessage.FORBIDDEN, HttpStatus.FORBIDDEN.value());
+        }
+        if(statusRequest.status() < 0 || statusRequest.status() > 3) {
+            throw new AppException(Error.ErrorCode.INVALID_STATUS,
+                    Error.ErrorCodeMessage.INVALID_STATUS, HttpStatus.BAD_REQUEST.value());
+        }
+
+        UpdateStatusEvent updateStatusEvent = UpdateStatusEvent.builder()
+                .accountId(userProfile.getAccountId())
+                .status(statusRequest.status())
+                .build();
+        kafkaTemplate.send(changeStatusTopic, updateStatusEvent);
     }
 
     private String getEmailFromToken(String accessToken) throws ParseException {

@@ -11,6 +11,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.nimbusds.jose.JOSEException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.constraints.Email;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.text.ParseException;
 import java.util.UUID;
@@ -18,7 +20,7 @@ import java.util.UUID;
 public interface AuthService {
     SignInResponse signIn(String username, String password);
     IntrospectResponse introspect(IntrospectRequest request) throws ParseException, JOSEException;
-
+    ObjectProvider<PasswordEncoder> getPasswordEncoderProvider();
     void signUp(SignUpRequest request);
 
     void sendOtp(@Email String email) throws JsonProcessingException;

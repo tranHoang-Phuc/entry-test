@@ -25,12 +25,23 @@ spring:
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    consumer:
+      group-id: identity-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
 
 kafka:
   topic:
     user-verification: user-verification-topic
     user-creation: user-creation-topic
-
+    reset-password: reset-password-topic
+    block-user: block-user-topic
+    assign-role: assign-role-topic
+    unassign-role: unassign-role-topic
+    change-status: change-status-topic
 server:
   port: 8090
   servlet:
