@@ -25,4 +25,6 @@ public interface ProfileService {
     UserProfileResponse getProfileAdmin(String profileId);
 
     void resetPasswordAdmin(UUID profileId, ResetPasswordRequest newPassword);
+
+    void deleteUserAdmin(UUID profileId, HttpServletRequest request) throws ParseException;
 }

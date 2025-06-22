@@ -128,9 +128,24 @@ public class ProfileController {
         return ResponseEntity.noContent().build();
     }
     // Soft Delete user Admin
+    @DeleteMapping("/admin/users/{profileId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> deleteUserAdmin(
+            @PathVariable("profileId") UUID profileId, HttpServletRequest request) throws ParseException {
+        profileService.deleteUserAdmin(profileId, request);
 
+        return ResponseEntity.noContent().build();
+    }
     // Assign Role Admin
-
+    @PutMapping("/admin/users/{profileId}/roles")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> assignRoleAdmin(
+            @PathVariable("profileId") UUID profileId,
+            @RequestBody String roleName) {
+        // Logic to assign role to user
+        // This is a placeholder, actual implementation will depend on your service layer
+        return ResponseEntity.noContent().build();
+    }
     // Unassign Role Admin
 
     // Activate User Admin

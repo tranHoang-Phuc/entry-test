@@ -1,6 +1,7 @@
 package com.dts.entry.profileservice.service.impl;
 
 import com.cloudinary.Cloudinary;
+import com.dts.entry.event.BlockAccountEvent;
 import com.dts.entry.event.ResetPasswordRequestEvent;
 import com.dts.entry.profileservice.consts.CookieConstants;
 import com.dts.entry.profileservice.consts.Error;
@@ -57,7 +58,9 @@ public class ProfileServiceImpl implements ProfileService {
     @NonFinal
     String resetPasswordTopic;
 
-
+    @Value("${kafka.topic.block-user}")
+    @NonFinal
+    String blockUserTopic;
 
     @Override
     @Transactional(readOnly = true)
@@ -260,6 +263,29 @@ public class ProfileServiceImpl implements ProfileService {
                 .build();
         kafkaTemplate.send(resetPasswordTopic, resetPasswordRequest);
         log.info("Reset password request sent for account ID: {}", userProfile.getAccountId());
+    }
+
+    @Override
+    public void deleteUserAdmin(UUID profileId, HttpServletRequest request) throws ParseException {
+        String accessToken = CookieUtils.getCookieValue(request, CookieConstants.ACCESS_TOKEN);
+        String email = getEmailFromToken(accessToken);
+
+        UserProfile userProfile = userProfileRepository.findById(profileId)
+                .orElseThrow(() -> new AppException(Error.ErrorCode.USER_PROFILE_NOT_FOUND,
+                        Error.ErrorCodeMessage.USER_PROFILE_NOT_FOUND, HttpStatus.NOT_FOUND.value()));
+
+        if(userProfile.getEmail().equals(email)) {
+            throw new AppException(Error.ErrorCode.FORBIDDEN,
+                    Error.ErrorCodeMessage.FORBIDDEN, HttpStatus.FORBIDDEN.value());
+        }
+
+        userProfile.setIsDeleted(true);
+        userProfileRepository.save(userProfile);
+        BlockAccountEvent blockAccountEvent = BlockAccountEvent.builder()
+                .accountId(userProfile.getAccountId())
+                .build();
+        kafkaTemplate.send(blockUserTopic, blockAccountEvent);
+        log.info("User with profile ID: {} has been soft deleted and account blocked", profileId);
     }
 
     private String getEmailFromToken(String accessToken) throws ParseException {

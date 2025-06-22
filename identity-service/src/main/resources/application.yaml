@@ -38,6 +38,7 @@ kafka:
     user-verification: user-verification-topic
     user-creation: user-creation-topic
     reset-password: reset-password-topic
+    block-user: block-user-topic
 
 server:
   port: 8090
