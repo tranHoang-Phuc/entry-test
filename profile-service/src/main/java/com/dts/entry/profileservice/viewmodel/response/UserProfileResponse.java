@@ -1,11 +1,13 @@
 package com.dts.entry.profileservice.viewmodel.response;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 
 import java.time.LocalDate;
 
 @Builder
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public record UserProfileResponse(
         @JsonProperty("id")
         String id,
@@ -22,6 +24,8 @@ public record UserProfileResponse(
         @JsonProperty("is_deleted")
         Boolean isDeleted,
         @JsonProperty("status")
-        Integer status
+        Integer status,
+        @JsonProperty("account")
+        AccountDetailResponse account
 ) {
 }

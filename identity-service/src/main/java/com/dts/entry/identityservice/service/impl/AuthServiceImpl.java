@@ -25,6 +25,7 @@ import com.dts.entry.identityservice.viewmodel.request.IntrospectRequest;
 import com.dts.entry.identityservice.viewmodel.request.SignUpRequest;
 import com.dts.entry.identityservice.viewmodel.request.VerifiedStatus;
 import com.dts.entry.identityservice.viewmodel.response.AccountCreationResponse;
+import com.dts.entry.identityservice.viewmodel.response.AccountDetailResponse;
 import com.dts.entry.identityservice.viewmodel.response.IntrospectResponse;
 import com.dts.entry.identityservice.viewmodel.response.SignInResponse;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -55,6 +56,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -491,6 +493,36 @@ public class AuthServiceImpl implements AuthService {
                 .email(account.getUsername())
                 .firstName(account.getFirstName())
                 .lastName(account.getLastName())
+                .build();
+    }
+
+    @Override
+    public AccountDetailResponse getAccountById(UUID id) {
+        Account account = accountRepository.findByAccountID(id)
+                .orElseThrow(() -> new AppException(
+                        Error.ErrorCode.USER_NOT_FOUND,
+                        Error.ErrorCodeMessage.USER_NOT_FOUND,
+                        HttpStatus.NOT_FOUND.value()
+                ));
+
+        return AccountDetailResponse.builder()
+                .accountId(account.getAccountId().toString())
+                .username(account.getUsername())
+                .status(account.getStatus().ordinal())
+                .roles(
+                        account.getRoles().stream()
+                                .map(role -> AccountDetailResponse.RoleDetailResponse.builder()
+                                        .name(role.getName())
+                                        .permissions(
+                                                role.getPermissions().stream()
+                                                        .map(permission -> AccountDetailResponse.RoleDetailResponse.PermissionDetailResponse.builder()
+                                                                .name(permission.getName())
+                                                                .build()
+                                                        ).collect(Collectors.toList())
+                                        )
+                                        .build()
+                                ).collect(Collectors.toList())
+                )
                 .build();
     }
 
