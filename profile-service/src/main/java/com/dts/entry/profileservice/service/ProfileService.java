@@ -1,5 +1,6 @@
 package com.dts.entry.profileservice.service;
 
+import com.dts.entry.profileservice.viewmodel.request.AssignRoleRequest;
 import com.dts.entry.profileservice.viewmodel.request.ResetPasswordRequest;
 import com.dts.entry.profileservice.viewmodel.request.UpdatedProfileRequest;
 import com.dts.entry.profileservice.viewmodel.request.UserProfileCreation;
@@ -27,4 +28,6 @@ public interface ProfileService {
     void resetPasswordAdmin(UUID profileId, ResetPasswordRequest newPassword);
 
     void deleteUserAdmin(UUID profileId, HttpServletRequest request) throws ParseException;
+
+    void assignRoleAdmin(UUID profileId, AssignRoleRequest roleName, HttpServletRequest request) throws ParseException;
 }

@@ -39,6 +39,7 @@ kafka:
     user-creation: user-creation-topic
     reset-password: reset-password-topic
     block-user: block-user-topic
+    assign-role: assign-role-topic
 
 server:
   port: 8090

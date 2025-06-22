@@ -1,6 +1,7 @@
 package com.dts.entry.profileservice.service.impl;
 
 import com.cloudinary.Cloudinary;
+import com.dts.entry.event.AssignRoleEvent;
 import com.dts.entry.event.BlockAccountEvent;
 import com.dts.entry.event.ResetPasswordRequestEvent;
 import com.dts.entry.profileservice.consts.CookieConstants;
@@ -11,10 +12,7 @@ import com.dts.entry.profileservice.repository.UserProfileRepository;
 import com.dts.entry.profileservice.repository.client.AuthClient;
 import com.dts.entry.profileservice.service.ProfileService;
 import com.dts.entry.profileservice.utils.CookieUtils;
-import com.dts.entry.profileservice.viewmodel.request.AccountCreation;
-import com.dts.entry.profileservice.viewmodel.request.ResetPasswordRequest;
-import com.dts.entry.profileservice.viewmodel.request.UpdatedProfileRequest;
-import com.dts.entry.profileservice.viewmodel.request.UserProfileCreation;
+import com.dts.entry.profileservice.viewmodel.request.*;
 import com.dts.entry.profileservice.viewmodel.response.UserProfileResponse;
 import com.nimbusds.jwt.SignedJWT;
 import jakarta.servlet.http.HttpServletRequest;
@@ -61,6 +59,10 @@ public class ProfileServiceImpl implements ProfileService {
     @Value("${kafka.topic.block-user}")
     @NonFinal
     String blockUserTopic;
+
+    @Value("${kafka.topic.assign-role}")
+    @NonFinal
+    String assignRoleTopic;
 
     @Override
     @Transactional(readOnly = true)
@@ -286,6 +288,34 @@ public class ProfileServiceImpl implements ProfileService {
                 .build();
         kafkaTemplate.send(blockUserTopic, blockAccountEvent);
         log.info("User with profile ID: {} has been soft deleted and account blocked", profileId);
+    }
+
+    @Override
+    public void assignRoleAdmin(UUID profileId, AssignRoleRequest roleName, HttpServletRequest request) throws ParseException {
+        String accessToken = CookieUtils.getCookieValue(request, CookieConstants.ACCESS_TOKEN);
+        String email = getEmailFromToken(accessToken);
+
+        UserProfile userProfile = userProfileRepository.findById(profileId)
+                .orElseThrow(() -> new AppException(Error.ErrorCode.USER_PROFILE_NOT_FOUND,
+                        Error.ErrorCodeMessage.USER_PROFILE_NOT_FOUND, HttpStatus.NOT_FOUND.value()));
+
+        if((email == userProfile.getEmail())) {
+            roleName.roles().remove("ADMIN");
+        }
+
+        if(roleName.roles() == null || roleName.roles().isEmpty()) {
+            throw new AppException(Error.ErrorCode.NOT_MATCHING,
+                    Error.ErrorCodeMessage.NOT_MATCHING, HttpStatus.BAD_REQUEST.value());
+        }
+
+        AssignRoleEvent assignRoleEvent = AssignRoleEvent.builder()
+                .accountId(userProfile.getAccountId())
+                .roles(roleName.roles())
+                .build();
+
+        kafkaTemplate.send(assignRoleTopic, assignRoleEvent);
+        log.info("Assign role event sent for account ID: {}", userProfile.getAccountId());
+
     }
 
     private String getEmailFromToken(String accessToken) throws ParseException {

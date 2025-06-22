@@ -2,6 +2,7 @@ package com.dts.entry.profileservice.controller;
 
 import com.dts.entry.profileservice.consts.PaginationConsts;
 import com.dts.entry.profileservice.service.ProfileService;
+import com.dts.entry.profileservice.viewmodel.request.AssignRoleRequest;
 import com.dts.entry.profileservice.viewmodel.request.ResetPasswordRequest;
 import com.dts.entry.profileservice.viewmodel.request.UpdatedProfileRequest;
 import com.dts.entry.profileservice.viewmodel.request.UserProfileCreation;
@@ -141,9 +142,8 @@ public class ProfileController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> assignRoleAdmin(
             @PathVariable("profileId") UUID profileId,
-            @RequestBody String roleName) {
-        // Logic to assign role to user
-        // This is a placeholder, actual implementation will depend on your service layer
+            @RequestBody AssignRoleRequest roleName, HttpServletRequest request) throws ParseException {
+        profileService.assignRoleAdmin(profileId, roleName, request);
         return ResponseEntity.noContent().build();
     }
     // Unassign Role Admin
